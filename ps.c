@@ -27,7 +27,7 @@ void ps_trailer(int pages, char *fonts)
 static char *prolog =
 	"/linewidth .4 def\n"
 	"/resolution 720 def\n"
-	"/pagebbox [0 0 612 792] def\n"
+	"/pagesize [612 792] def\n"
 	"/inch {72 mul} bind def\n"
 	"\n"
 	"/setup {\n"
@@ -37,21 +37,10 @@ static char *prolog =
 	"	linewidth setlinewidth\n"
 	"	1 setlinecap\n"
 	"\n"
-	"	pagedimensions\n"
-	"	xcenter ycenter translate\n"
-	"	width 2 div neg height 2 div translate\n"
+	"	0 pagesize 1 get translate\n"
 	"	scaling scaling scale\n"
 	"\n"
 	"	0 0 moveto\n"
-	"} def\n"
-	"\n"
-	"/pagedimensions {\n"
-	"	pagebbox aload pop\n"
-	"	4 -1 roll exch 4 1 roll 4 copy\n"
-	"	sub /width exch def\n"
-	"	sub /height exch def\n"
-	"	add 2 div /xcenter exch def\n"
-	"	add 2 div /ycenter exch def\n"
 	"} def\n"
 	"\n"
 	"/pagesetup {\n"
@@ -85,6 +74,7 @@ void ps_header(void)
 	out("%s", prolog);
 	out("%%%%EndProlog\n");
 	out("%%%%BeginSetup\n");
+	out("<< /PageSize pagesize /ImagingBBox null >> setpagedevice\n");
 	out("mark\n");
 	out("setup\n");
 	out("%%%%EndSetup\n");
