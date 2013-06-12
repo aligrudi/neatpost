@@ -42,7 +42,7 @@ int dev_open(char *path);
 void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 struct font *dev_font(int fn);
-int dev_fontid(struct font *fn, int cur);
+int dev_fontid(struct font *fn);
 int charwid(int wid, int sz);
 struct glyph *dev_glyph(char *c, int fn);
 struct glyph *dev_glyph_byid(char *id, int fn);
@@ -63,6 +63,14 @@ void outfont(int f);
 void outsize(int s);
 void outpage(void);
 extern char o_fonts[];
+
+void drawbeg(void);
+void drawend(void);
+void drawl(int h, int v);
+void drawc(int c);
+void drawe(int h, int v);
+void drawa(int h1, int v1, int h2, int v2);
+void draws(int h1, int v1, int h2, int v2);
 
 /* postscript functions */
 void ps_header(void);

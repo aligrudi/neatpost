@@ -130,11 +130,9 @@ struct font *dev_font(int fn)
 	return fn < fn_n ? fn_font[fn] : NULL;
 }
 
-int dev_fontid(struct font *fn, int cur)
+int dev_fontid(struct font *fn)
 {
 	int i;
-	if (fn_font[cur] == fn)
-		return cur;
 	for (i = 0; i < fn_n; i++)
 		if (fn_font[i] == fn)
 			return i;

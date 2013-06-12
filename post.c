@@ -88,7 +88,7 @@ static int iseol(void)
 	int c;
 	do {
 		c = next();
-	} while (c != ' ');
+	} while (c == ' ');
 	if (c != '\n')
 		back(c);
 	return c == '\n';
@@ -117,43 +117,55 @@ static void nextword(char *s)
 	*s = '\0';
 }
 
-static void draw(void)
+static void postspline(int h1, int v1)
+{
+	int h2, v2;
+	while (!iseol()) {
+		h2 = nextnum();
+		v2 = nextnum();
+		draws(h1, v1, h2, v2);
+		h1 = h2;
+		v1 = v2;
+	}
+	draws(h1, v1, 0, 0);
+}
+
+static void postdraw(void)
 {
 	int h1, h2, v1, v2;
 	int c = next();
+	drawbeg();
 	switch (c) {
 	case 'l':
 		h1 = nextnum();
 		v1 = nextnum();
-		outrel(h1, v1);
+		drawl(h1, v1);
 		break;
 	case 'c':
-		h1 = nextnum();
-		outrel(h1, 0);
+		drawc(nextnum());
 		break;
 	case 'e':
 		h1 = nextnum();
 		v1 = nextnum();
-		outrel(h1, 0);
+		drawe(h1, v1);
 		break;
 	case 'a':
 		h1 = nextnum();
 		v1 = nextnum();
 		h2 = nextnum();
 		v2 = nextnum();
-		outrel(h1 + h2, v1 + v2);
+		drawa(h1, v1, h2, v2);
 		break;
-	default:
+	case '~':
 		h1 = nextnum();
 		v1 = nextnum();
-		outrel(h1, v1);
-		while (!iseol()) {
-			h2 = nextnum();
-			v2 = nextnum();
-			outrel(h2, v2);
-		}
+		if (iseol())
+			drawl(h1, v1);
+		else
+			postspline(h1, v1);
 		break;
 	}
+	drawend();
 	nexteol();
 }
 
@@ -239,7 +251,7 @@ static void postcmd(int c)
 		nextnum();
 		break;
 	case 'D':
-		draw();
+		postdraw();
 		break;
 	case 'x':
 		postx();
