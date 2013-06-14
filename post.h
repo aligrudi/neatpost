@@ -4,7 +4,7 @@
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
 #define GNLEN		32	/* glyph name length */
-#define ILNLEN		256	/* line limit of input files */
+#define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -64,8 +64,8 @@ void outsize(int s);
 void outpage(void);
 extern char o_fonts[];
 
-void drawbeg(void);
-void drawend(void);
+void drawbeg(char *s);
+void drawend(char *s);
 void drawl(int h, int v);
 void drawc(int c);
 void drawe(int h, int v);

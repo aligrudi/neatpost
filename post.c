@@ -5,8 +5,9 @@
  *
  * This program is released under the Modified BSD license.
  */
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 #include "post.h"
 
 static int o_pg;
@@ -117,6 +118,20 @@ static void nextword(char *s)
 	*s = '\0';
 }
 
+/* read until eol */
+static void readln(char *s)
+{
+	int c;
+	c = next();
+	while (c > 0 && c != '\n') {
+		*s++ = c;
+		c = next();
+	}
+	if (c == '\n')
+		back(c);
+	*s = '\0';
+}
+
 static void postspline(int h1, int v1)
 {
 	int h2, v2;
@@ -134,7 +149,7 @@ static void postdraw(void)
 {
 	int h1, h2, v1, v2;
 	int c = next();
-	drawbeg();
+	drawbeg(NULL);
 	switch (c) {
 	case 'l':
 		h1 = nextnum();
@@ -165,8 +180,22 @@ static void postdraw(void)
 			postspline(h1, v1);
 		break;
 	}
-	drawend();
+	drawend(NULL);
 	nexteol();
+}
+
+static void postps(void)
+{
+	char cmd[ILNLEN];
+	char arg[ILNLEN];
+	nextword(cmd);
+	readln(arg);
+	if (!strcmp("PS", cmd) || !strcmp("ps", cmd))
+		out("%s\n", arg);
+	if (!strcmp("BeginObject", cmd))
+		drawbeg(arg);
+	if (!strcmp("EndObject", cmd))
+		drawend(arg);
 }
 
 static char devpath[PATHLEN] = "devutf";
@@ -193,6 +222,7 @@ static void postx(void)
 	case 's':
 		break;
 	case 'X':
+		postps();
 		break;
 	}
 	nexteol();

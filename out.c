@@ -166,44 +166,73 @@ void outsize(int s)
 	o_s = s;
 }
 
-void drawbeg(void)
+static int draw_path;	/* number of path segments */
+static int draw_point;	/* point was set for postscript newpath */
+
+static void drawmv(void)
+{
+	if (!draw_point)
+		outf("%d %d m ", o_h, o_v);
+	draw_point = 1;
+}
+
+/* if s is not NULL, start a multi-segment path */
+void drawbeg(char *s)
 {
 	o_flush();
 	out_fontup(o_f);
-	outf("newpath %d %d m ", o_h, o_v);
+	if (draw_path)
+		return;
+	draw_path = s != NULL;
+	if (s)
+		outf("gsave newpath %s\n", s);
+	else
+		outf("newpath ");
 }
 
-void drawend(void)
+void drawend(char *s)
 {
-	outf("stroke\n");
+	if (draw_path && !s)
+		return;
+	draw_path = 0;
+	draw_point = 0;
+	if (s)
+		outf("%s grestore\n", s);
+	else
+		outf("stroke\n");
 }
 
 void drawl(int h, int v)
 {
+	drawmv();
 	outrel(h, v);
 	outf("%d %d drawl ", o_h, o_v);
 }
 
 void drawc(int c)
 {
+	drawmv();
 	outrel(c, 0);
 	outf("%d %d drawe ", c, c);
 }
 
 void drawe(int h, int v)
 {
+	drawmv();
 	outrel(h, 0);
 	outf("%d %d drawe ", h, v);
 }
 
 void drawa(int h1, int v1, int h2, int v2)
 {
+	drawmv();
 	outf("%d %d %d %d drawa ", h1, v1, h2, v2);
 	outrel(h1 + h2, v1 + v2);
 }
 
 void draws(int h1, int v1, int h2, int v2)
 {
+	drawmv();
 	outf("%d %d %d %d %d %d draws ", o_h, o_v, o_h + h1, o_v + v1,
 		o_h + h1 + h2, o_v + v1 + v2);
 	outrel(h1, v1);
