@@ -90,8 +90,7 @@ static int iseol(void)
 	do {
 		c = next();
 	} while (c == ' ');
-	if (c != '\n')
-		back(c);
+	back(c);
 	return c == '\n';
 }
 
