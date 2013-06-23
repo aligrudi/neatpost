@@ -1,7 +1,9 @@
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
 #define NFONTS		32	/* number of fonts */
-#define FNLEN		32	/* font name length */
+#define NLIGS		32	/* number of font ligatures */
+#define NKERNS		128	/* number of font pairwise kerning pairs */
+#define FNLEN		64	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
 #define GNLEN		32	/* glyph name length */
 #define ILNLEN		1000	/* line limit of input files */
@@ -18,8 +20,8 @@ extern int dev_hor;
 extern int dev_ver;
 
 struct glyph {
-	char name[FNLEN];	/* name of the glyph */
-	char id[FNLEN];		/* device-dependent glyph identifier */
+	char name[GNLEN];	/* name of the glyph */
+	char id[GNLEN];		/* device-dependent glyph identifier */
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
@@ -27,7 +29,7 @@ struct glyph {
 
 struct font {
 	char name[FNLEN];
-	char psname[FNLEN];
+	char fontname[FNLEN];
 	struct glyph glyphs[NGLYPHS];
 	int nglyphs;
 	int spacewid;
@@ -35,6 +37,12 @@ struct font {
 	char c[NGLYPHS][FNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
+	char lig[NLIGS][GNLEN * 4];	/* font ligatures */
+	int nlig;
+	int kern[NKERNS];		/* font pairwise kerning */
+	char kern_c1[NKERNS][GNLEN];
+	char kern_c2[NKERNS][GNLEN];
+	int nkern;
 };
 
 /* output device functions */
@@ -52,6 +60,8 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
+int font_lig(struct font *fn, char *c);
+int font_kern(struct font *fn, char *c1, char *c2);
 
 /* output functions */
 void out(char *s, ...);

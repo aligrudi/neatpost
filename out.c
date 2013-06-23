@@ -111,12 +111,12 @@ static void out_fontup(int fid)
 	struct font *fn;
 	if (fid != p_f || o_s != p_s) {
 		fn = dev_font(fid);
-		out("%d /%s f\n", o_s, fn->psname);
+		out("%d /%s f\n", o_s, fn->fontname);
 		p_f = fid;
 		p_s = o_s;
-		sprintf(fnname, " %s ", fn->psname);
+		sprintf(fnname, " %s ", fn->fontname);
 		if (!strstr(o_fonts, fnname))
-			sprintf(strchr(o_fonts, '\0'), "%s ", fn->psname);
+			sprintf(strchr(o_fonts, '\0'), "%s ", fn->fontname);
 	}
 }
 

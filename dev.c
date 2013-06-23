@@ -43,8 +43,8 @@ int dev_open(char *dir)
 {
 	char path[PATHLEN];
 	char tok[ILNLEN];
-	FILE *desc;
 	int i;
+	FILE *desc;
 	strcpy(dev_dir, dir);
 	sprintf(path, "%s/DESC", dir);
 	desc = fopen(path, "r");
@@ -119,15 +119,21 @@ struct glyph *dev_glyph_byid(char *id, int fn)
 	return font_glyph(fn_font[fn], id);
 }
 
+int dev_kernpair(char *c1, char *c2)
+{
+	return 0;
+}
+
+/* return the font struct at pos */
+struct font *dev_font(int pos)
+{
+	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
+}
+
 int charwid(int wid, int sz)
 {
 	/* the original troff rounds the widths up */
 	return (wid * sz + dev_uwid / 2) / dev_uwid;
-}
-
-struct font *dev_font(int fn)
-{
-	return fn < fn_n ? fn_font[fn] : NULL;
 }
 
 int dev_fontid(struct font *fn)
