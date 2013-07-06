@@ -5,7 +5,7 @@ LDFLAGS =
 all: post
 %.o: %.c post.h
 	$(CC) -c $(CFLAGS) $<
-post: post.o out.o ps.o font.o dev.o
+post: post.o out.o ps.o font.o dev.o clr.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 clean:
 	rm -f *.o post

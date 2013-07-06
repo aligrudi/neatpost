@@ -50,6 +50,7 @@ static char *prolog =
 	"/w {neg moveto show} bind def\n"
 	"/m {neg moveto} bind def\n"
 	"/g {neg moveto {glyphshow} forall} bind def\n"
+	"/rgb {255 div 3 1 roll 255 div 3 1 roll 255 div 3 1 roll setrgbcolor} bind def\n"
 	"/done {/lastpage where {pop lastpage} if} def\n"
 	"\n"
 	"/f {\n"

@@ -71,6 +71,7 @@ void outv(int v);
 void outrel(int h, int v);
 void outfont(int f);
 void outsize(int s);
+void outcolor(int c);
 void outpage(void);
 extern char o_fonts[];
 
@@ -87,3 +88,12 @@ void ps_header(void);
 void ps_trailer(int pages, char *fonts);
 void ps_pagebeg(int n);
 void ps_pageend(int n);
+
+/* colors */
+#define CLR_R(c)		(((c) >> 16) & 0xff)
+#define CLR_G(c)		(((c) >> 8) & 0xff)
+#define CLR_B(c)		((c) & 0xff)
+#define CLR_RGB(r, g, b)	(((r) << 16) | ((g) << 8) | (b))
+
+char *clr_str(int c);
+int clr_get(char *s);

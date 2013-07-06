@@ -259,6 +259,10 @@ static void postcmd(int c)
 		nextutf8(cs);
 		outc(cs);
 		break;
+	case 'm':
+		nextword(cs);
+		outcolor(clr_get(cs));
+		break;
 	case 'N':
 		nextnum();
 		break;

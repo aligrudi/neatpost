@@ -5,9 +5,9 @@
 #include <string.h>
 #include "post.h"
 
-static int o_f, o_s;		/* font and size */
+static int o_f, o_s, o_m;	/* font and size */
 static int o_h, o_v;		/* current user position */
-static int p_f, p_s;		/* output postscript font */
+static int p_f, p_s, p_m;	/* output postscript font */
 static int o_qtype;		/* queued character type */
 static int o_qv, o_qh, o_qend;	/* queued character position */
 char o_fonts[FNLEN * NFONTS] = " ";
@@ -41,6 +41,7 @@ void outpage(void)
 	o_h = 0;
 	p_s = 0;
 	p_f = 0;
+	p_m = 0;
 }
 
 static void o_queue(struct glyph *g)
@@ -109,6 +110,10 @@ static void out_fontup(int fid)
 {
 	char fnname[FNLEN];
 	struct font *fn;
+	if (o_m != p_m) {
+		out("%d %d %d rgb\n", CLR_R(o_m), CLR_G(o_m), CLR_B(o_m));
+		p_m = o_m;
+	}
 	if (fid != p_f || o_s != p_s) {
 		fn = dev_font(fid);
 		out("%d /%s f\n", o_s, fn->fontname);
@@ -164,6 +169,11 @@ void outfont(int f)
 void outsize(int s)
 {
 	o_s = s;
+}
+
+void outcolor(int c)
+{
+	o_m = c;
 }
 
 static int draw_path;	/* number of path segments */
