@@ -166,6 +166,13 @@ void outfont(int f)
 	o_f = f;
 }
 
+/* a font was mounted at pos f */
+void outmnt(int f)
+{
+	if (p_f == f)
+		p_f = -1;
+}
+
 void outsize(int s)
 {
 	o_s = s;

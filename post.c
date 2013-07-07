@@ -210,6 +210,7 @@ static void postx(void)
 		pos = nextnum();
 		nextword(dev);
 		dev_mnt(pos, dev, dev);
+		outmnt(pos);
 		break;
 	case 'i':
 		dev_open(devpath);

@@ -73,6 +73,7 @@ void outfont(int f);
 void outsize(int s);
 void outcolor(int c);
 void outpage(void);
+void outmnt(int f);
 extern char o_fonts[];
 
 void drawbeg(char *s);
