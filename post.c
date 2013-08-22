@@ -131,9 +131,25 @@ static void readln(char *s)
 	*s = '\0';
 }
 
-static void postspline(int h1, int v1)
+static void postline(void)
+{
+	int h, v;
+	while (!iseol()) {
+		h = nextnum();
+		v = nextnum();
+		drawl(h, v);
+	}
+}
+
+static void postspline(void)
 {
 	int h2, v2;
+	int h1 = nextnum();
+	int v1 = nextnum();
+	if (iseol()) {
+		drawl(h1, v1);
+		return;
+	}
 	while (!iseol()) {
 		h2 = nextnum();
 		v2 = nextnum();
@@ -148,8 +164,8 @@ static void postdraw(void)
 {
 	int h1, h2, v1, v2;
 	int c = next();
-	drawbeg(NULL);
-	switch (c) {
+	drawbeg();
+	switch (tolower(c)) {
 	case 'l':
 		h1 = nextnum();
 		v1 = nextnum();
@@ -171,15 +187,13 @@ static void postdraw(void)
 		drawa(h1, v1, h2, v2);
 		break;
 	case '~':
-		h1 = nextnum();
-		v1 = nextnum();
-		if (iseol())
-			drawl(h1, v1);
-		else
-			postspline(h1, v1);
+		postspline();
+		break;
+	case 'p':
+		postline();
 		break;
 	}
-	drawend(NULL);
+	drawend(c == 'p' || c == 'P', c == 'E' || c == 'C' || c == 'P');
 	nexteol();
 }
 
@@ -192,9 +206,9 @@ static void postps(void)
 	if (!strcmp("PS", cmd) || !strcmp("ps", cmd))
 		out("%s\n", arg);
 	if (!strcmp("BeginObject", cmd))
-		drawbeg(arg);
+		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))
-		drawend(arg);
+		drawmend(arg);
 }
 
 static char devpath[PATHLEN] = "devutf";

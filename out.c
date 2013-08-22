@@ -193,28 +193,41 @@ static void drawmv(void)
 	draw_point = 1;
 }
 
-/* if s is not NULL, start a multi-segment path */
-void drawbeg(char *s)
+/* start a multi-segment path */
+void drawmbeg(char *s)
+{
+	o_flush();
+	out_fontup(o_f);
+	draw_path = 1;
+	outf("gsave newpath %s\n", s);
+}
+
+/* end a multi-segment path */
+void drawmend(char *s)
+{
+	draw_path = 0;
+	draw_point = 0;
+	outf("%s grestore\n", s);
+}
+
+void drawbeg(void)
 {
 	o_flush();
 	out_fontup(o_f);
 	if (draw_path)
 		return;
-	draw_path = s != NULL;
-	if (s)
-		outf("gsave newpath %s\n", s);
-	else
-		outf("newpath ");
+	outf("newpath ");
 }
 
-void drawend(char *s)
+void drawend(int close, int fill)
 {
-	if (draw_path && !s)
+	if (draw_path)
 		return;
-	draw_path = 0;
 	draw_point = 0;
-	if (s)
-		outf("%s grestore\n", s);
+	if (close)
+		outf("closepath ");
+	if (fill)
+		outf("fill\n");
 	else
 		outf("stroke\n");
 }

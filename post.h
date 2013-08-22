@@ -83,8 +83,10 @@ void outpage(void);
 void outmnt(int f);
 extern char o_fonts[];
 
-void drawbeg(char *s);
-void drawend(char *s);
+void drawbeg(void);
+void drawend(int close, int fill);
+void drawmbeg(char *s);
+void drawmend(char *s);
 void drawl(int h, int v);
 void drawc(int c);
 void drawe(int h, int v);
