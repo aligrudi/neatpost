@@ -7,6 +7,7 @@
  */
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "post.h"
 
@@ -228,7 +229,10 @@ static void postx(void)
 		outmnt(pos);
 		break;
 	case 'i':
-		dev_open(devpath, devname);
+		if (dev_open(devpath, devname)) {
+			fprintf(stderr, "neatpost: cannot open device %s\n", devname);
+			exit(1);
+		}
 		ps_header();
 		break;
 	case 'T':
@@ -309,7 +313,7 @@ static void postcmd(int c)
 		nexteol();
 		break;
 	default:
-		fprintf(stderr, "unknown command: %c\n", c);
+		fprintf(stderr, "neatpost: unknown command %c\n", c);
 	}
 }
 
