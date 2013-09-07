@@ -26,9 +26,7 @@ void ps_trailer(int pages, char *fonts)
 
 static char *prolog =
 	"/linewidth .4 def\n"
-	"/resolution 720 def\n"
 	"/pagesize [612 792] def\n"
-	"/inch {72 mul} bind def\n"
 	"\n"
 	"/setup {\n"
 	"	counttomark 2 idiv {def} repeat pop\n"
@@ -131,6 +129,7 @@ void ps_header(void)
 	out("%%%%EndComments\n");
 
 	out("%%%%BeginProlog\n");
+	out("/resolution %d def\n", dev_res);
 	out("%s", prolog);
 	out("%%%%EndProlog\n");
 	out("%%%%BeginSetup\n");
