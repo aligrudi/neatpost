@@ -5,6 +5,7 @@
 #include "post.h"
 
 char dev_dir[PATHLEN];	/* device directory */
+char dev_dev[PATHLEN];	/* output device name */
 int dev_res;		/* device resolution */
 int dev_uwid;		/* device unitwidth */
 int dev_hor;		/* minimum horizontal movement */
@@ -27,7 +28,7 @@ int dev_mnt(int pos, char *id, char *name)
 {
 	char path[PATHLEN];
 	struct font *fn;
-	sprintf(path, "%s/%s", dev_dir, name);
+	sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
 		return -1;
@@ -39,14 +40,15 @@ int dev_mnt(int pos, char *id, char *name)
 	return pos;
 }
 
-int dev_open(char *dir)
+int dev_open(char *dir, char *dev)
 {
 	char path[PATHLEN];
 	char tok[ILNLEN];
 	int i;
 	FILE *desc;
 	strcpy(dev_dir, dir);
-	sprintf(path, "%s/DESC", dir);
+	strcpy(dev_dev, dev);
+	sprintf(path, "%s/dev%s/DESC", dir, dev);
 	desc = fopen(path, "r");
 	while (fscanf(desc, "%s", tok) == 1) {
 		if (tok[0] == '#') {
@@ -82,9 +84,9 @@ int dev_open(char *dir)
 			fscanf(desc, "%d", &dev_ver);
 			continue;
 		}
-		if (!strcmp("charset", tok)) {
+		if (!strcmp("charset", tok))
 			break;
-		}
+		skipline(desc);
 	}
 	fclose(desc);
 	return 0;

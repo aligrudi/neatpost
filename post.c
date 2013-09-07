@@ -211,27 +211,28 @@ static void postps(void)
 		drawmend(arg);
 }
 
-static char devpath[PATHLEN] = "devutf";
+static char devpath[PATHLEN] = TROFFFDIR;
+static char devname[PATHLEN] = "utf";
 
 static void postx(void)
 {
 	char cmd[128];
-	char dev[128];
+	char font[128];
 	int pos;
 	nextword(cmd);
 	switch (cmd[0]) {
 	case 'f':
 		pos = nextnum();
-		nextword(dev);
-		dev_mnt(pos, dev, dev);
+		nextword(font);
+		dev_mnt(pos, font, font);
 		outmnt(pos);
 		break;
 	case 'i':
-		dev_open(devpath);
+		dev_open(devpath, devname);
+		ps_header();
 		break;
 	case 'T':
-		nextword(dev);
-		sprintf(devpath, "%s/font/dev%s", TROFFROOT, dev);
+		nextword(devname);
 		break;
 	case 's':
 		break;
@@ -322,9 +323,12 @@ static void post(void)
 		ps_pageend(o_pg);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-	ps_header();
+	int i;
+	for (i = 1; i < argc; i++)
+		if (argv[i][0] == '-' && argv[i][1] == 'F')
+			strcpy(devpath, argv[i][2] ? argv[i] + 2 : argv[++i]);
 	post();
 	ps_trailer(o_pg, o_fonts);
 	return 0;

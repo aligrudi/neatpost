@@ -1,5 +1,8 @@
+# neatpost's default font directory
+FDIR=/root/troff/home/font
+
 CC = cc
-CFLAGS = -Wall -O2 -DTROFFROOT=\"/root/troff/home\"
+CFLAGS = -Wall -O2 "-DTROFFFDIR=\"$(FDIR)\""
 LDFLAGS =
 
 all: post

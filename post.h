@@ -53,7 +53,7 @@ struct font {
 };
 
 /* output device functions */
-int dev_open(char *path);
+int dev_open(char *dir, char *dev);
 void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 struct font *dev_font(int fn);
