@@ -81,7 +81,13 @@ static struct fixlist {
 	char *name;
 	int dh, dv;
 } fixlist[] = {
-	{"br", -5, 15},
+	{"", -5, 4},
+	{"", 20, 0},
+	{"", 20, 0},
+	{"", -11, 0},
+	{"", -11, 0},
+	{"", -50, 0},
+	{"br", -5, 4},
 	{"lc", 20, 0},
 	{"lf", 20, 0},
 	{"rc", -11, 0},
@@ -95,7 +101,7 @@ static void fixpos(struct glyph *g, int *dh, int *dv)
 	int i;
 	*dh = 0;
 	*dv = 0;
-	if (!strcmp("S", fn->name)) {
+	if (!strcmp("S", fn->name) && !strcmp("Symbol", fn->fontname)) {
 		for (i = 0; i < LEN(fixlist); i++) {
 			if (!strcmp(fixlist[i].name, g->name)) {
 				*dh = charwid(fixlist[i].dh, o_s);
