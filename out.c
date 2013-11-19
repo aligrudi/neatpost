@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +45,7 @@ void outpage(void)
 
 static void o_queue(struct glyph *g)
 {
-	int type = 1 + !isdigit((g)->id[0]);
-	int num = atoi(g->id);
+	int type = 1 + (g->pos <= 0);
 	if (o_qtype != type || o_qend != o_h || o_qv != o_v) {
 		o_flush();
 		o_qh = o_h;
@@ -56,10 +54,11 @@ static void o_queue(struct glyph *g)
 		outf(type == 1 ? "(" : "[");
 	}
 	if (o_qtype == 1) {
-		if (num >= ' ' && num <= '~')
-			outf("%s%c", strchr("()\\", num) ? "\\" : "", num);
+		if (g->pos >= ' ' && g->pos <= '~')
+			outf("%s%c", strchr("()\\", g->pos) ? "\\" : "", g->pos);
 		else
-			outf("\\%d%d%d", (num >> 6) & 7, (num >> 3) & 7, num & 7);
+			outf("\\%d%d%d", (g->pos >> 6) & 7,
+					(g->pos >> 3) & 7, g->pos & 7);
 	} else {
 		outf("/%s", g->id);
 	}
