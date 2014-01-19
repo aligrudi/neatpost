@@ -1,7 +1,7 @@
 /*
  * neatpost troff postscript postprocessor
  *
- * Copyright (C) 2013 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2014 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * This program is released under the Modified BSD license.
  */
@@ -327,12 +327,22 @@ static void post(void)
 		ps_pageend(o_pg);
 }
 
+static char *usage =
+	"Usage: neatpost [options] <input >output\n\n"
+	"Options:\n"
+	"  -Fdir \tset font directory (" TROFFFDIR ")\n";
+
 int main(int argc, char *argv[])
 {
 	int i;
-	for (i = 1; i < argc; i++)
-		if (argv[i][0] == '-' && argv[i][1] == 'F')
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == 'F') {
 			strcpy(devpath, argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else {
+			printf("%s", usage);
+			return 0;
+		}
+	}
 	post();
 	ps_trailer(o_pg, o_fonts);
 	return 0;
