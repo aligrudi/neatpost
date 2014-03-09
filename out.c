@@ -75,42 +75,6 @@ void out(char *s, ...)
 	va_end(ap);
 }
 
-/* glyph placement adjustments */
-static struct fixlist {
-	char *name;
-	int dh, dv;
-} fixlist[] = {
-	{"", -5, 4},
-	{"", 20, 0},
-	{"", 20, 0},
-	{"", -11, 0},
-	{"", -11, 0},
-	{"", -50, 0},
-	{"br", -5, 4},
-	{"lc", 20, 0},
-	{"lf", 20, 0},
-	{"rc", -11, 0},
-	{"rf", -11, 0},
-	{"rn", -50, 0},
-};
-
-static void fixpos(struct glyph *g, int *dh, int *dv)
-{
-	struct font *fn = g->font;
-	int i;
-	*dh = 0;
-	*dv = 0;
-	if (!strcmp("S", fn->name) && !strcmp("Symbol", fn->fontname)) {
-		for (i = 0; i < LEN(fixlist); i++) {
-			if (!strcmp(fixlist[i].name, g->name)) {
-				*dh = charwid(fixlist[i].dh, o_s);
-				*dv = charwid(fixlist[i].dv, o_s);
-				return;
-			}
-		}
-	}
-}
-
 static void out_fontup(int fid)
 {
 	char fnname[FNLEN];
@@ -134,7 +98,6 @@ void outc(char *c)
 {
 	struct glyph *g;
 	struct font *fn;
-	int dh, dv;
 	g = dev_glyph(c, o_f);
 	fn = g ? g->font : dev_font(o_f);
 	if (!g) {
@@ -142,12 +105,7 @@ void outc(char *c)
 		return;
 	}
 	out_fontup(dev_fontid(fn));
-	fixpos(g, &dh, &dv);
-	o_h += dh;
-	o_v += dv;
 	o_queue(g);
-	o_h -= dh;
-	o_v -= dv;
 }
 
 void outh(int h)
