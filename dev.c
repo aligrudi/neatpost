@@ -14,7 +14,7 @@ int dev_ver;		/* minimum vertical movement */
 /* mounted fonts */
 static char fn_name[NFONTS][FNLEN];	/* font names */
 static struct font *fn_font[NFONTS];	/* font structs */
-static int fn_n;			/* number of mounted fonts */
+static int fn_n;			/* number of device fonts */
 
 static void skipline(FILE* filp)
 {
@@ -28,6 +28,8 @@ int dev_mnt(int pos, char *id, char *name)
 {
 	char path[PATHLEN];
 	struct font *fn;
+	if (pos >= NFONTS)
+		return -1;
 	sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
@@ -97,7 +99,7 @@ int dev_open(char *dir, char *dev)
 void dev_close(void)
 {
 	int i;
-	for (i = 0; i < fn_n; i++) {
+	for (i = 0; i < NFONTS; i++) {
 		if (fn_font[i])
 			font_close(fn_font[i]);
 		fn_font[i] = NULL;
@@ -111,7 +113,7 @@ struct glyph *dev_glyph(char *c, int fn)
 	g = font_find(fn_font[fn], c);
 	if (g)
 		return g;
-	for (i = 0; i < fn_n; i++)
+	for (i = 0; i < NFONTS; i++)
 		if (fn_font[i] && fn_font[i]->special)
 			if ((g = font_find(fn_font[i], c)))
 				return g;
@@ -131,7 +133,7 @@ int dev_kernpair(char *c1, char *c2)
 /* return the font struct at pos */
 struct font *dev_font(int pos)
 {
-	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
+	return pos >= 0 && pos < NFONTS ? fn_font[pos] : NULL;
 }
 
 int charwid(int wid, int sz)
@@ -143,7 +145,7 @@ int charwid(int wid, int sz)
 int dev_fontid(struct font *fn)
 {
 	int i;
-	for (i = 0; i < fn_n; i++)
+	for (i = 0; i < NFONTS; i++)
 		if (fn_font[i] == fn)
 			return i;
 	return 0;
