@@ -40,6 +40,18 @@ struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int 
 	return g;
 }
 
+static void tilloel(FILE *fin, char *s)
+{
+	int c = fgetc(fin);
+	while (c != EOF && c != '\n') {
+		*s++ = c;
+		c = fgetc(fin);
+	}
+	*s = '\0';
+	if (c != EOF)
+		ungetc(c, fin);
+}
+
 static int font_readchar(struct font *fn, FILE *fin)
 {
 	char tok[ILNLEN];
@@ -58,8 +70,12 @@ static int font_readchar(struct font *fn, FILE *fin)
 		if (fscanf(fin, "%d %s", &type, id) != 2)
 			return 1;
 		glyph = font_glyph(fn, id);
-		if (!glyph)
+		if (!glyph) {
 			glyph = font_glyphput(fn, id, name, wid, type);
+			tilloel(fin, tok);
+			if (sscanf(tok, "%d", &glyph->pos) < 1)
+				glyph->pos = 0;
+		}
 	} else {
 		glyph = fn->g[fn->n - 1];
 	}
