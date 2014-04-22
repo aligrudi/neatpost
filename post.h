@@ -54,7 +54,6 @@ struct font *dev_font(int fn);
 int dev_fontid(struct font *fn);
 int charwid(int wid, int sz);
 struct glyph *dev_glyph(char *c, int fn);
-struct glyph *dev_glyph_byid(char *id, int fn);
 
 /* font-related functions */
 struct font *font_open(char *path);

@@ -106,6 +106,11 @@ void dev_close(void)
 	}
 }
 
+static struct glyph *dev_glyph_byid(char *id, int fn)
+{
+	return font_glyph(fn_font[fn], id);
+}
+
 struct glyph *dev_glyph(char *c, int fn)
 {
 	struct glyph *g;
@@ -117,12 +122,7 @@ struct glyph *dev_glyph(char *c, int fn)
 		if (fn_font[i] && fn_font[i]->special)
 			if ((g = font_find(fn_font[i], c)))
 				return g;
-	return NULL;
-}
-
-struct glyph *dev_glyph_byid(char *id, int fn)
-{
-	return font_glyph(fn_font[fn], id);
+	return !strncmp("GID=", c, 4) ? dev_glyph_byid(c + 4, fn) : NULL;
 }
 
 int dev_kernpair(char *c1, char *c2)
