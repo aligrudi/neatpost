@@ -4,12 +4,12 @@
 #include <string.h>
 #include "post.h"
 
-char dev_dir[PATHLEN];	/* device directory */
-char dev_dev[PATHLEN];	/* output device name */
-int dev_res;		/* device resolution */
-int dev_uwid;		/* device unitwidth */
-int dev_hor;		/* minimum horizontal movement */
-int dev_ver;		/* minimum vertical movement */
+static char dev_dir[PATHLEN];	/* device directory */
+static char dev_dev[PATHLEN];	/* output device name */
+int dev_res;			/* device resolution */
+int dev_uwid;			/* device unitwidth */
+int dev_hor;			/* minimum horizontal movement */
+int dev_ver;			/* minimum vertical movement */
 
 /* mounted fonts */
 static char fn_name[NFONTS][FNLEN];	/* font names */
@@ -106,28 +106,11 @@ void dev_close(void)
 	}
 }
 
-static struct glyph *dev_glyph_byid(char *id, int fn)
-{
-	return font_glyph(fn_font[fn], id);
-}
-
 struct glyph *dev_glyph(char *c, int fn)
 {
-	struct glyph *g;
-	int i;
-	g = font_find(fn_font[fn], c);
-	if (g)
-		return g;
-	for (i = 0; i < NFONTS; i++)
-		if (fn_font[i] && fn_font[i]->special)
-			if ((g = font_find(fn_font[i], c)))
-				return g;
-	return !strncmp("GID=", c, 4) ? dev_glyph_byid(c + 4, fn) : NULL;
-}
-
-int dev_kernpair(char *c1, char *c2)
-{
-	return 0;
+	if (!strncmp("GID=", c, 4))
+		return font_glyph(fn_font[fn], c + 4);
+	return font_find(fn_font[fn], c);
 }
 
 /* return the font struct at pos */
