@@ -16,7 +16,7 @@ static void outvf(char *s, va_list ap)
 	vfprintf(stdout, s, ap);
 }
 
-void outf(char *s, ...)
+static void outf(char *s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
