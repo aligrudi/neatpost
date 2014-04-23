@@ -25,7 +25,8 @@ struct glyph *font_glyph(struct font *fn, char *id)
 	return NULL;
 }
 
-struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int type)
+static struct glyph *font_glyphput(struct font *fn, char *id,
+				char *name, int wid, int type)
 {
 	int i = fn->nglyphs++;
 	struct glyph *g;
