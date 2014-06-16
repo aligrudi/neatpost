@@ -11,7 +11,10 @@
 #include <string.h>
 #include "post.h"
 
-static int o_pg;
+static int ps_pagewidth = 216;	/* page width */
+static int ps_pageheight = 279;	/* page height */
+static int ps_linewidth = 40;	/* drawing line thickness in thousandths of an em */
+static int o_pages;		/* output pages */
 
 static int next(void)
 {
@@ -233,7 +236,7 @@ static void postx(void)
 			fprintf(stderr, "neatpost: cannot open device %s\n", devname);
 			exit(1);
 		}
-		ps_header();
+		ps_header(ps_pagewidth, ps_pageheight, ps_linewidth);
 		break;
 	case 'T':
 		nextword(devname);
@@ -291,10 +294,10 @@ static void postcmd(int c)
 		outc(cs);
 		break;
 	case 'p':
-		if (o_pg)
-			ps_pageend(o_pg);
-		o_pg = nextnum();
-		ps_pagebeg(o_pg);
+		if (o_pages)
+			ps_pageend(o_pages);
+		o_pages = nextnum();
+		ps_pagebeg(o_pages);
 		outpage();
 		break;
 	case 'w':
@@ -323,14 +326,57 @@ static void post(void)
 	while ((c = next()) >= 0)
 		if (!isspace(c))
 			postcmd(c);
-	if (o_pg)
-		ps_pageend(o_pg);
+	if (o_pages)
+		ps_pageend(o_pages);
+}
+
+#define ISODIM(n, d1, d2)	((((n) & 1) ? d2 : d1) >> (n >> 1))
+
+static void setpagesize(char *s)
+{
+	int d1, d2, n;
+	/* predefined paper sizes */
+	if (!strcmp("letter", s)) {
+		ps_pagewidth = 216;
+		ps_pageheight = 279;
+		return;
+	}
+	/* custom paper size in mm, like 210x297 for a4 */
+	if (isdigit(s[0]) && strchr(s, 'x')) {
+		ps_pagewidth = atoi(s);
+		ps_pageheight = atoi(strchr(s, 'x') + 1);
+		return;
+	}
+	/* ISO paper sizes */
+	if (!isdigit(s[1]))
+		return;
+	n = s[1] - '0';
+	switch (tolower(s[0])) {
+	case 'a':
+		d1 = 841;
+		d2 = 1189;
+		break;
+	case 'b':
+		d1 = 1000;
+		d2 = 1414;
+		break;
+	case 'c':
+		d1 = 917;
+		d2 = 1297;
+		break;
+	default:
+		return;
+	}
+	ps_pagewidth = ((n & 1) ? d2 : d1) >> ((n + 1) >> 1);
+	ps_pageheight = ((n & 1) ? d1 : d2) >> (n >> 1);
 }
 
 static char *usage =
-	"Usage: neatpost [options] <input >output\n\n"
+	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
-	"  -Fdir \tset font directory (" TROFFFDIR ")\n";
+	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
+	"  -p size \tset paper size (a4)\n"
+	"  -w lwid \tdrawing line thickness in thousandths of an em\n";
 
 int main(int argc, char *argv[])
 {
@@ -338,12 +384,16 @@ int main(int argc, char *argv[])
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == 'F') {
 			strcpy(devpath, argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'p') {
+			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
+			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
 		} else {
 			printf("%s", usage);
 			return 0;
 		}
 	}
 	post();
-	ps_trailer(o_pg, o_fonts);
+	ps_trailer(o_pages, o_fonts);
 	return 0;
 }

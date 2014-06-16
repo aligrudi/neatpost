@@ -25,9 +25,6 @@ void ps_trailer(int pages, char *fonts)
 }
 
 static char *prolog =
-	"/linewidth .4 def\n"
-	"/pagesize [612 792] def\n"
-	"\n"
 	"/setup {\n"
 	"	counttomark 2 idiv {def} repeat pop\n"
 	"	/scaling 72 resolution div def\n"
@@ -119,7 +116,7 @@ static char *prolog =
 	"	curveto\n"
 	"} bind def\n";
 
-void ps_header(void)
+void ps_header(int pagewidth, int pageheight, int linewidth)
 {
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");
@@ -130,6 +127,9 @@ void ps_header(void)
 
 	out("%%%%BeginProlog\n");
 	out("/resolution %d def\n", dev_res);
+	out("/pagesize [%d %d] def\n", (pagewidth * 720 + 127) / 254,
+					(pageheight * 720 + 127) / 254);
+	out("/linewidth %d.%02d def\n\n", linewidth / 100, linewidth % 100);
 	out("%s", prolog);
 	out("%%%%EndProlog\n");
 	out("%%%%BeginSetup\n");
