@@ -330,8 +330,6 @@ static void post(void)
 		ps_pageend(o_pages);
 }
 
-#define ISODIM(n, d1, d2)	((((n) & 1) ? d2 : d1) >> (n >> 1))
-
 static void setpagesize(char *s)
 {
 	int d1, d2, n;
