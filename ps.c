@@ -13,7 +13,6 @@ void ps_pageend(int n)
 	out("cleartomark\n");
 	out("showpage\n");
 	out("saveobj restore\n");
-	out("%%%%EndPage: %d %d\n", n, n);
 }
 
 void ps_trailer(int pages, char *fonts)
@@ -22,6 +21,7 @@ void ps_trailer(int pages, char *fonts)
 	out("done\n");
 	out("%%%%DocumentFonts: %s\n", fonts);
 	out("%%%%Pages: %d\n", pages);
+	out("%%%%EOF\n");
 }
 
 static char *prolog =
@@ -49,35 +49,15 @@ static char *prolog =
 	"/done {/lastpage where {pop lastpage} if} def\n"
 	"\n"
 	"% caching fonts, as selectfont is supposed to be doing\n"
-	"/fncache 7 array def\n"
-	"/fncidx 0 def\n"
+	"/fncache 16 dict def\n"
+	"/selectfont_append { fncache exch dup findfont put } bind def\n"
 	"/selectfont_cached {\n"
-	"	/fsize exch def\n"
-	"	/fname exch def\n"
-	"	/font null def\n"
-	"	fncache {\n"
-	"		/ent exch def\n"
-	"		ent null eq not {\n"
-	"			ent 0 get fname eq {\n"
-	"				/font ent 1 get def\n"
-	"			} if\n"
-	"		} if\n"
-	"	} forall\n"
-	"	font null eq {\n"
-	"		/font fname findfont def\n"
-	"		fncache fncidx [fname font] put\n"
-	"		/fncidx fncidx 1 add def\n"
-	"		fncidx fncache length ge {\n"
-	"			/fncidx 0 def\n"
-	"		} if\n"
-	"	} if\n"
-	"	font fsize scalefont setfont\n"
+	"	exch dup fncache exch known not { dup selectfont_append } if\n"
+	"	fncache exch get exch scalefont setfont\n"
 	"} bind def\n"
 	"/f {\n"
-	"	/font exch def /ptsize exch def\n"
-	"	ptsize scaling div /size exch def\n"
-	"	font size selectfont_cached\n"
-	"	linewidth ptsize mul scaling 10 mul div setlinewidth\n"
+	"	exch dup 3 1 roll scaling div selectfont_cached\n"
+	"	linewidth mul scaling 10 mul div setlinewidth\n"
 	"} bind def\n"
 	"\n"
 	"/savedmatrix matrix def\n"
