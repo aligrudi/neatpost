@@ -330,14 +330,26 @@ static void post(void)
 		ps_pageend(o_pages);
 }
 
+static struct paper {
+	char *name;
+	int w, h;
+} papers[] = {
+	{"letter", 2159, 2794},
+	{"legal", 2159, 3556},
+	{"ledger", 4318, 2794},
+	{"tabloid", 2794, 4318},
+};
+
 static void setpagesize(char *s)
 {
-	int d1, d2, n;
+	int d1, d2, n, i;
 	/* predefined paper sizes */
-	if (!strcmp("letter", s)) {
-		ps_pagewidth = 2159;
-		ps_pageheight = 2794;
-		return;
+	for (i = 0; i < LEN(papers); i++) {
+		if (!strcmp(papers[i].name, s)) {
+			ps_pagewidth = papers[i].w;
+			ps_pageheight = papers[i].h;
+			return;
+		}
 	}
 	/* custom paper size in mm, like 210x297 for a4 */
 	if (isdigit(s[0]) && strchr(s, 'x')) {
@@ -346,25 +358,21 @@ static void setpagesize(char *s)
 		return;
 	}
 	/* ISO paper sizes */
-	if (!isdigit(s[1]))
+	if (!strchr("abcABC", s[0]) || !isdigit(s[1]))
 		return;
-	n = s[1] - '0';
-	switch (tolower(s[0])) {
-	case 'a':
+	if (tolower(s[0]) == 'a') {
 		d1 = 8410;
 		d2 = 11890;
-		break;
-	case 'b':
+	}
+	if (tolower(s[0]) == 'b') {
 		d1 = 10000;
 		d2 = 14140;
-		break;
-	case 'c':
+	}
+	if (tolower(s[0]) == 'c') {
 		d1 = 9170;
 		d2 = 12970;
-		break;
-	default:
-		return;
 	}
+	n = s[1] - '0';
 	ps_pagewidth = ((n & 1) ? d2 : d1) >> ((n + 1) >> 1);
 	ps_pageheight = ((n & 1) ? d1 : d2) >> (n >> 1);
 }
