@@ -11,8 +11,8 @@
 #include <string.h>
 #include "post.h"
 
-static int ps_pagewidth = 216;	/* page width */
-static int ps_pageheight = 279;	/* page height */
+static int ps_pagewidth = 2159;	/* page width (tenths of a millimetre) */
+static int ps_pageheight = 2794;/* page height (tenths of a millimetre) */
 static int ps_linewidth = 40;	/* drawing line thickness in thousandths of an em */
 static int o_pages;		/* output pages */
 
@@ -335,8 +335,8 @@ static void setpagesize(char *s)
 	int d1, d2, n;
 	/* predefined paper sizes */
 	if (!strcmp("letter", s)) {
-		ps_pagewidth = 216;
-		ps_pageheight = 279;
+		ps_pagewidth = 2159;
+		ps_pageheight = 2794;
 		return;
 	}
 	/* custom paper size in mm, like 210x297 for a4 */
@@ -351,16 +351,16 @@ static void setpagesize(char *s)
 	n = s[1] - '0';
 	switch (tolower(s[0])) {
 	case 'a':
-		d1 = 841;
-		d2 = 1189;
+		d1 = 8410;
+		d2 = 11890;
 		break;
 	case 'b':
-		d1 = 1000;
-		d2 = 1414;
+		d1 = 10000;
+		d2 = 14140;
 		break;
 	case 'c':
-		d1 = 917;
-		d2 = 1297;
+		d1 = 9170;
+		d2 = 12970;
 		break;
 	default:
 		return;
