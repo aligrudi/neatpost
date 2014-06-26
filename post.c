@@ -215,8 +215,8 @@ static void postps(void)
 		drawmend(arg);
 }
 
-static char devpath[PATHLEN] = TROFFFDIR;
-static char devname[PATHLEN] = "utf";
+static char postdir[PATHLEN] = TROFFFDIR;	/* output device directory */
+static char postdev[PATHLEN] = "utf";		/* output device name */
 
 static void postx(void)
 {
@@ -232,14 +232,14 @@ static void postx(void)
 		outmnt(pos);
 		break;
 	case 'i':
-		if (dev_open(devpath, devname)) {
-			fprintf(stderr, "neatpost: cannot open device %s\n", devname);
+		if (dev_open(postdir, postdev)) {
+			fprintf(stderr, "neatpost: cannot open device %s\n", postdev);
 			exit(1);
 		}
 		ps_header(ps_pagewidth, ps_pageheight, ps_linewidth);
 		break;
 	case 'T':
-		nextword(devname);
+		nextword(postdev);
 		break;
 	case 's':
 		break;
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 	int i;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == 'F') {
-			strcpy(devpath, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			strcpy(postdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
 		} else if (argv[i][0] == '-' && argv[i][1] == 'p') {
 			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
 		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
