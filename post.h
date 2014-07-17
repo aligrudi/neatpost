@@ -70,6 +70,7 @@ void outrel(int h, int v);
 void outfont(int f);
 void outsize(int s);
 void outcolor(int c);
+void outrotate(int deg);
 void outpage(void);
 void outmnt(int f);
 extern char o_fonts[];

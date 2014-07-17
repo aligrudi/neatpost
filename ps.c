@@ -46,6 +46,7 @@ static char *prolog =
 	"/m {neg moveto} bind def\n"
 	"/g {neg moveto {glyphshow} forall} bind def\n"
 	"/rgb {255 div 3 1 roll 255 div 3 1 roll 255 div 3 1 roll setrgbcolor} bind def\n"
+	"/rot {/y exch def /x exch def x y neg translate rotate x neg y translate} bind def\n"
 	"/done {/lastpage where {pop lastpage} if} def\n"
 	"\n"
 	"% caching fonts, as selectfont is supposed to be doing\n"

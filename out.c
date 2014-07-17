@@ -9,6 +9,8 @@ static int o_h, o_v;		/* current user position */
 static int p_f, p_s, p_m;	/* output postscript font */
 static int o_qtype;		/* queued character type */
 static int o_qv, o_qh, o_qend;	/* queued character position */
+static int o_rh, o_rv, o_rdeg;	/* previous rotation position and degree */
+
 char o_fonts[FNLEN * NFONTS] = " ";
 
 static void outvf(char *s, va_list ap)
@@ -41,6 +43,7 @@ void outpage(void)
 	p_s = 0;
 	p_f = 0;
 	p_m = 0;
+	o_rdeg = 0;
 }
 
 static void o_queue(struct glyph *g)
@@ -144,6 +147,18 @@ void outsize(int s)
 void outcolor(int c)
 {
 	o_m = c;
+}
+
+void outrotate(int deg)
+{
+	o_flush();
+	out_fontup(o_f);
+	if (o_rdeg)
+		outf("%d %d %d rot\n", -o_rdeg, o_rh, o_rv);
+	o_rdeg = deg;
+	o_rh = o_h;
+	o_rv = o_v;
+	outf("%d %d %d rot\n", deg, o_h, o_v);
 }
 
 static int draw_path;	/* number of path segments */

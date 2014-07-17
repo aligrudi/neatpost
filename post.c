@@ -209,6 +209,8 @@ static void postps(void)
 	readln(arg);
 	if (!strcmp("PS", cmd) || !strcmp("ps", cmd))
 		out("%s\n", arg);
+	if (!strcmp("rotate", cmd))
+		outrotate(atoi(arg));
 	if (!strcmp("BeginObject", cmd))
 		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))
