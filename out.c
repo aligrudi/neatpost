@@ -245,3 +245,49 @@ void draws(int h1, int v1, int h2, int v2)
 		o_h + h1 + h2, o_v + v1 + v2);
 	outrel(h1, v1);
 }
+
+void outeps(char *spec)
+{
+	char eps[1 << 12];
+	char buf[1 << 12];
+	int llx, lly, urx, ury;
+	int hwid, vwid;
+	FILE *filp;
+	int nspec, nbb;
+	nspec = sscanf(spec, "%s %d %d", eps, &hwid, &vwid);
+	if (nspec < 1)
+		return;
+	if (!(filp = fopen(eps, "r")))
+		return;
+	if (!fgets(buf, sizeof(buf), filp) ||
+			(strcmp(buf, "%!PS-Adobe-2.0 EPSF-2.0\n") &&
+			strcmp(buf, "%!PS-Adobe-3.0 EPSF-3.0\n"))) {
+		fclose(filp);
+		return;
+	}
+	nbb = 0;
+	while (fgets(buf, sizeof(buf), filp))
+		if (!strncmp(buf, "%%BoundingBox: ", 15))
+			if ((nbb = sscanf(buf + 15, "%d %d %d %d",
+					&llx, &lly, &urx, &ury)) == 4)
+				break;
+	fclose(filp);
+	if (nbb < 4)		/* no BoundingBox comment */
+		return;
+	if (nspec == 1)
+		hwid = urx - llx;
+	if (nspec <= 2)
+		vwid = (ury - lly) * hwid / (urx - llx);
+	/* output the EPS file */
+	o_flush();
+	out_fontup(o_f);
+	outf("%d %d %d %d %d %d %d %d EPSFBEG\n",
+		llx, lly, hwid, urx - llx, vwid, ury - lly, o_h, o_v);
+	outf("%%%%BeginDocument: %s\n", eps);
+	filp = fopen(eps, "r");
+	while (fgets(buf, sizeof(buf), filp))
+		out("%s", buf);
+	fclose(filp);
+	outf("%%%%EndDocument\n");
+	outf("EPSFEND\n");
+}

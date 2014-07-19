@@ -211,6 +211,8 @@ static void postps(void)
 		out("%s\n", arg);
 	if (!strcmp("rotate", cmd))
 		outrotate(atoi(arg));
+	if (!strcmp("eps", cmd))
+		outeps(arg);
 	if (!strcmp("BeginObject", cmd))
 		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))
