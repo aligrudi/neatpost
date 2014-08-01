@@ -30,14 +30,17 @@ int dev_mnt(int pos, char *id, char *name)
 	struct font *fn;
 	if (pos >= NFONTS)
 		return -1;
-	sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
+	if (strchr(name, '/'))
+		strcpy(path, name);
+	else
+		sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
 		return -1;
 	if (fn_font[pos])
 		font_close(fn_font[pos]);
 	if (fn_name[pos] != name)	/* ignore if fn_name[pos] is passed */
-		strcpy(fn_name[pos], id);
+		snprintf(fn_name[pos], sizeof(fn_name[pos]), "%s", id);
 	fn_font[pos] = fn;
 	return pos;
 }
