@@ -379,6 +379,8 @@ static void setpagesize(char *s)
 	n = s[1] - '0';
 	ps_pagewidth = ((n & 1) ? d2 : d1) >> ((n + 1) >> 1);
 	ps_pageheight = ((n & 1) ? d1 : d2) >> (n >> 1);
+	ps_pagewidth -= ps_pagewidth % 10;
+	ps_pageheight -= ps_pageheight % 10;
 }
 
 static char *usage =
