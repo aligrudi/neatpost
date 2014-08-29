@@ -26,33 +26,12 @@ struct glyph {
 	int pos;		/* glyph code */
 };
 
-struct font {
-	char name[FNLEN];
-	char fontname[FNLEN];
-	struct glyph glyphs[NGLYPHS];
-	int nglyphs;
-	int spacewid;
-	int special;
-	int cs, bd;			/* for .cs and .bd requests */
-	/* glyph list based on the first character of their id fields in glyphs[] */
-	int ghead[256];			/* glyph list head */
-	int gnext[NGLYPHS];		/* next item in glyph list */
-	/* charset section characters */
-	char c[NGLYPHS][GNLEN];		/* character names in charset */
-	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
-	int n;				/* number of characters in charset */
-	/* glyph list based on the first character of glyph names in c[] */
-	int chead[256];			/* glyph list head */
-	int cnext[NGLYPHS];		/* next item in glyph list */
-};
-
 /* output device functions */
 int dev_open(char *dir, char *dev);
 void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 struct font *dev_font(int fn);
 int dev_fontid(struct font *fn);
-int charwid(int wid, int sz);
 struct glyph *dev_glyph(char *c, int fn);
 
 /* font-related functions */
@@ -60,6 +39,9 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
+int font_wid(struct font *fn, int sz, int w);
+int font_swid(struct font *fn, int sz);
+char *font_name(struct font *fn);
 
 /* output functions */
 void out(char *s, ...);

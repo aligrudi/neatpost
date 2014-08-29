@@ -122,12 +122,6 @@ struct font *dev_font(int pos)
 	return pos >= 0 && pos < NFONTS ? fn_font[pos] : NULL;
 }
 
-int charwid(int wid, int sz)
-{
-	/* the original troff rounds the widths up */
-	return (wid * sz + dev_uwid / 2) / dev_uwid;
-}
-
 int dev_fontid(struct font *fn)
 {
 	int i;

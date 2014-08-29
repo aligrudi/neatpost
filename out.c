@@ -65,7 +65,7 @@ static void o_queue(struct glyph *g)
 	} else {
 		outf("/%s", g->id);
 	}
-	o_qend = o_h + charwid(g->wid, o_s);
+	o_qend = o_h + font_wid(g->font, o_s, g->wid);
 }
 
 /* calls o_flush() if necessary */
@@ -88,12 +88,12 @@ static void out_fontup(int fid)
 	}
 	if (fid != p_f || o_s != p_s) {
 		fn = dev_font(fid);
-		out("%d /%s f\n", o_s, fn->fontname);
+		out("%d /%s f\n", o_s, font_name(fn));
 		p_f = fid;
 		p_s = o_s;
-		sprintf(fnname, " %s ", fn->fontname);
+		sprintf(fnname, " %s ", font_name(fn));
 		if (!strstr(o_fonts, fnname))
-			sprintf(strchr(o_fonts, '\0'), "%s ", fn->fontname);
+			sprintf(strchr(o_fonts, '\0'), "%s ", font_name(fn));
 	}
 }
 
@@ -104,7 +104,7 @@ void outc(char *c)
 	g = dev_glyph(c, o_f);
 	fn = g ? g->font : dev_font(o_f);
 	if (!g) {
-		outrel(*c == ' ' && fn ? charwid(fn->spacewid, o_s) : 1, 0);
+		outrel(*c == ' ' && fn ? font_swid(fn, o_s) : 1, 0);
 		return;
 	}
 	out_fontup(dev_fontid(fn));
