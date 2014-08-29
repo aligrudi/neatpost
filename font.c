@@ -6,18 +6,18 @@
 struct font {
 	char name[FNLEN];
 	char fontname[FNLEN];
-	struct glyph glyphs[NGLYPHS];
-	int nglyphs;
 	int spacewid;
-	/* glyph list based on the first character of their id fields in glyphs[] */
+	struct glyph gl[NGLYPHS];	/* font glyphs */
+	int gl_n;			/* number of glyphs in gl[] */
+	/* charset mapping; ch[i] is mapped to glyph ch_g[i] */
+	char ch[NGLYPHS][GNLEN];
+	struct glyph *ch_g[NGLYPHS];
+	int ch_n;			/* number of characters in ch[] */
+	/* glyph table; lists per glyph identifier starting character */
 	int ghead[256];			/* glyph list head */
 	int gnext[NGLYPHS];		/* next item in glyph list */
-	/* charset section characters */
-	char c[NGLYPHS][GNLEN];		/* character names in charset */
-	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
-	int n;				/* number of characters in charset */
-	/* glyph list based on the first character of glyph names in c[] */
-	int chead[256];			/* glyph list head */
+	/* charset table; lists per mapping starting character */
+	int chead[256];			/* charset list head */
 	int cnext[NGLYPHS];		/* next item in glyph list */
 };
 
@@ -25,8 +25,8 @@ struct glyph *font_find(struct font *fn, char *name)
 {
 	int i = fn->chead[(unsigned char) name[0]];
 	while (i >= 0) {
-		if (!strcmp(name, fn->c[i]))
-			return fn->g[i];
+		if (!strcmp(name, fn->ch[i]))
+			return fn->ch_g[i];
 		i = fn->cnext[i];
 	}
 	return NULL;
@@ -36,8 +36,8 @@ struct glyph *font_glyph(struct font *fn, char *id)
 {
 	int i = fn->ghead[(unsigned char) id[0]];
 	while (i >= 0) {
-		if (!strcmp(fn->glyphs[i].id, id))
-			return &fn->glyphs[i];
+		if (!strcmp(fn->gl[i].id, id))
+			return &fn->gl[i];
 		i = fn->gnext[i];
 	}
 	return NULL;
@@ -46,9 +46,9 @@ struct glyph *font_glyph(struct font *fn, char *id)
 static struct glyph *font_glyphput(struct font *fn, char *id,
 				char *name, int wid, int type)
 {
-	int i = fn->nglyphs++;
+	int i = fn->gl_n++;
 	struct glyph *g;
-	g = &fn->glyphs[i];
+	g = &fn->gl[i];
 	strcpy(g->id, id);
 	strcpy(g->name, name);
 	g->wid = wid;
@@ -78,12 +78,12 @@ static int font_readchar(struct font *fn, FILE *fin)
 	char id[ILNLEN];
 	struct glyph *glyph = NULL;
 	int wid, type;
-	if (fn->n >= NGLYPHS)
+	if (fn->ch_n >= NGLYPHS)
 		return 1;
 	if (fscanf(fin, "%s %s", name, tok) != 2)
 		return 1;
 	if (!strcmp("---", name))
-		sprintf(name, "c%04d", fn->n);
+		sprintf(name, "c%04d", fn->ch_n);
 	if (strcmp("\"", tok)) {
 		wid = atoi(tok);
 		if (fscanf(fin, "%d %s", &type, id) != 2)
@@ -96,13 +96,13 @@ static int font_readchar(struct font *fn, FILE *fin)
 				glyph->pos = 0;
 		}
 	} else {
-		glyph = fn->g[fn->n - 1];
+		glyph = fn->ch_g[fn->ch_n - 1];
 	}
-	strcpy(fn->c[fn->n], name);
-	fn->g[fn->n] = glyph;
-	fn->cnext[fn->n] = fn->chead[(unsigned char) name[0]];
-	fn->chead[(unsigned char) name[0]] = fn->n;
-	fn->n++;
+	strcpy(fn->ch[fn->ch_n], name);
+	fn->ch_g[fn->ch_n] = glyph;
+	fn->cnext[fn->ch_n] = fn->chead[(unsigned char) name[0]];
+	fn->chead[(unsigned char) name[0]] = fn->ch_n;
+	fn->ch_n++;
 	return 0;
 }
 
