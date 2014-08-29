@@ -11,7 +11,7 @@ struct font {
 	int gl_n;			/* number of glyphs in gl[] */
 	/* charset mapping; ch[i] is mapped to glyph ch_g[i] */
 	char ch[NGLYPHS][GNLEN];
-	struct glyph *ch_g[NGLYPHS];
+	int ch_g[NGLYPHS];
 	int ch_n;			/* number of characters in ch[] */
 	/* glyph table; lists per glyph identifier starting character */
 	int ghead[256];			/* glyph list head */
@@ -26,7 +26,7 @@ struct glyph *font_find(struct font *fn, char *name)
 	int i = fn->chead[(unsigned char) name[0]];
 	while (i >= 0) {
 		if (!strcmp(name, fn->ch[i]))
-			return fn->ch_g[i];
+			return fn->gl + fn->ch_g[i];
 		i = fn->cnext[i];
 	}
 	return NULL;
@@ -96,10 +96,10 @@ static int font_readchar(struct font *fn, FILE *fin)
 				glyph->pos = 0;
 		}
 	} else {
-		glyph = fn->ch_g[fn->ch_n - 1];
+		glyph = fn->gl + fn->ch_g[fn->ch_n - 1];
 	}
 	strcpy(fn->ch[fn->ch_n], name);
-	fn->ch_g[fn->ch_n] = glyph;
+	fn->ch_g[fn->ch_n] = glyph - fn->gl;
 	fn->cnext[fn->ch_n] = fn->chead[(unsigned char) name[0]];
 	fn->chead[(unsigned char) name[0]] = fn->ch_n;
 	fn->ch_n++;
