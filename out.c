@@ -254,9 +254,12 @@ void outeps(char *spec)
 	int hwid, vwid;
 	FILE *filp;
 	int nspec, nbb;
-	nspec = sscanf(spec, "%s %d %d", eps, &hwid, &vwid);
-	if (nspec < 1)
+	if ((nspec = sscanf(spec, "%s %d %d", eps, &hwid, &vwid)) < 1)
 		return;
+	if (nspec < 2)
+		hwid = 0;
+	if (nspec < 3)
+		vwid = 0;
 	if (!(filp = fopen(eps, "r")))
 		return;
 	if (!fgets(buf, sizeof(buf), filp) ||
@@ -274,10 +277,12 @@ void outeps(char *spec)
 	fclose(filp);
 	if (nbb < 4)		/* no BoundingBox comment */
 		return;
-	if (nspec == 1)
+	if (hwid <= 0 && vwid <= 0)
 		hwid = urx - llx;
-	if (nspec <= 2)
+	if (vwid <= 0)
 		vwid = (ury - lly) * hwid / (urx - llx);
+	if (hwid <= 0)
+		hwid = (urx - llx) * vwid / (ury - lly);
 	/* output the EPS file */
 	o_flush();
 	out_fontup(o_f);
