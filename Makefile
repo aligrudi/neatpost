@@ -1,14 +1,15 @@
 # neatpost's default font directory
-FDIR=/root/troff/home/font
+FDIR = /neatroff/font
 
 CC = cc
 CFLAGS = -Wall -O2 "-DTROFFFDIR=\"$(FDIR)\""
 LDFLAGS =
+OBJS = post.o out.o ps.o font.o dev.o clr.o
 
 all: post
 %.o: %.c post.h
 	$(CC) -c $(CFLAGS) $<
-post: post.o out.o ps.o font.o dev.o clr.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+post: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 clean:
 	rm -f *.o post
