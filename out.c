@@ -129,7 +129,8 @@ void outrel(int h, int v)
 
 void outfont(int f)
 {
-	o_f = f;
+	if (dev_font(f))
+		o_f = f;
 }
 
 /* a font was mounted at pos f */
