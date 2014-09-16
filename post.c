@@ -355,7 +355,7 @@ static void setpagesize(char *s)
 			return;
 		}
 	}
-	/* custom paper size in mm, like 210x297 for a4 */
+	/* custom paper size in mm, like 2100x2970 for a4 */
 	if (isdigit(s[0]) && strchr(s, 'x')) {
 		ps_pagewidth = atoi(s);
 		ps_pageheight = atoi(strchr(s, 'x') + 1);
@@ -387,8 +387,8 @@ static char *usage =
 	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
 	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
-	"  -p size \tset paper size (letter)\n"
-	"  -w lwid \tdrawing line thickness in thousandths of an em\n";
+	"  -p size \tset paper size; e.g., a4, letter, 2100x2970 (letter)\n"
+	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n";
 
 int main(int argc, char *argv[])
 {
