@@ -387,7 +387,7 @@ static char *usage =
 	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
 	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
-	"  -p size \tset paper size (a4)\n"
+	"  -p size \tset paper size (letter)\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em\n";
 
 int main(int argc, char *argv[])
