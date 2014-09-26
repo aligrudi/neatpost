@@ -321,6 +321,7 @@ static void postcmd(int c)
 		break;
 	default:
 		fprintf(stderr, "neatpost: unknown command %c\n", c);
+		nexteol();
 	}
 }
 
@@ -387,7 +388,7 @@ static char *usage =
 	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
 	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
-	"  -p size \tset paper size; e.g., a4, letter, 2100x2970 (letter)\n"
+	"  -p size \tset paper size (letter); e.g., a4, 2100x2970\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n";
 
 int main(int argc, char *argv[])
