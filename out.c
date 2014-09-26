@@ -142,7 +142,8 @@ void outmnt(int f)
 
 void outsize(int s)
 {
-	o_s = s;
+	if (s > 0)
+		o_s = s;
 }
 
 void outcolor(int c)
