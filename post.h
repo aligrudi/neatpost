@@ -1,7 +1,6 @@
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
 #define NFONTS		32	/* number of fonts */
-#define NGLYPHS		1024	/* glyphs in fonts */
 #define FNLEN		64	/* font name length */
 #define GNLEN		32	/* glyph name length */
 #define ILNLEN		1000	/* line limit of input files */
@@ -82,3 +81,24 @@ void ps_pageend(int n);
 
 char *clr_str(int c);
 int clr_get(char *s);
+
+/* mapping integers to sets */
+struct iset *iset_make(void);
+void iset_free(struct iset *iset);
+int *iset_get(struct iset *iset, int key);
+void iset_put(struct iset *iset, int key, int ent);
+int iset_len(struct iset *iset, int key);
+
+/* mapping strings to longs */
+struct dict *dict_make(int notfound, int dupkeys);
+void dict_free(struct dict *d);
+void dict_put(struct dict *d, char *key, int val);
+int dict_get(struct dict *d, char *key);
+int dict_idx(struct dict *d, char *key);
+char *dict_key(struct dict *d, int idx);
+int dict_val(struct dict *d, int idx);
+int dict_prefix(struct dict *d, char *key, int *idx);
+
+/* memory allocation */
+void *xmalloc(long len);
+void *mextend(void *old, long oldsz, long newsz, int memsz);

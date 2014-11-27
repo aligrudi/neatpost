@@ -384,6 +384,29 @@ static void setpagesize(char *s)
 	ps_pageheight -= ps_pageheight % 10;
 }
 
+static void errdie(char *msg)
+{
+	fprintf(stderr, msg);
+	exit(1);
+}
+
+void *mextend(void *old, long oldsz, long newsz, int memsz)
+{
+	void *new = xmalloc(newsz * memsz);
+	memcpy(new, old, oldsz * memsz);
+	memset(new + oldsz * memsz, 0, (newsz - oldsz) * memsz);
+	free(old);
+	return new;
+}
+
+void *xmalloc(long len)
+{
+	void *m = malloc(len);
+	if (!m)
+		errdie("neatroff: malloc() failed\n");
+	return m;
+}
+
 static char *usage =
 	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
