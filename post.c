@@ -431,5 +431,6 @@ int main(int argc, char *argv[])
 	}
 	post();
 	ps_trailer(o_pages, o_fonts);
+	dev_close();
 	return 0;
 }
