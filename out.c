@@ -280,7 +280,7 @@ void outeps(char *spec)
 	if (nbb < 4)		/* no BoundingBox comment */
 		return;
 	if (hwid <= 0 && vwid <= 0)
-		hwid = urx - llx;
+		hwid = (urx - llx) * dev_res / 72;
 	if (vwid <= 0)
 		vwid = (ury - lly) * hwid / (urx - llx);
 	if (hwid <= 0)
