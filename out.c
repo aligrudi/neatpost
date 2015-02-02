@@ -265,7 +265,8 @@ void outeps(char *spec)
 	if (!(filp = fopen(eps, "r")))
 		return;
 	if (!fgets(buf, sizeof(buf), filp) ||
-			(strcmp(buf, "%!PS-Adobe-2.0 EPSF-2.0\n") &&
+			(strcmp(buf, "%!PS-Adobe-2.0 EPSF-1.2\n") &&
+			strcmp(buf, "%!PS-Adobe-2.0 EPSF-2.0\n") &&
 			strcmp(buf, "%!PS-Adobe-3.0 EPSF-3.0\n"))) {
 		fclose(filp);
 		return;
