@@ -37,7 +37,7 @@ static int clrcomp(char *s, int len)
 	for (i = 0; i < len; i++)
 		if (strchr(digs, tolower(s[i])))
 			n = n * 16 + (strchr(digs, tolower(s[i])) - digs);
-	return len == 1 ? n << 4 : n;
+	return len == 1 ? n * 255 / 15 : n;
 }
 
 int clr_get(char *s)
