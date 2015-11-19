@@ -55,6 +55,7 @@ void outrotate(int deg);
 void outeps(char *eps);
 void outpage(void);
 void outmnt(int f);
+void outgname(int g);
 extern char o_fonts[];
 
 void drawbeg(void);

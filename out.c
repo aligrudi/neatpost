@@ -10,6 +10,7 @@ static int p_f, p_s, p_m;	/* output postscript font */
 static int o_qtype;		/* queued character type */
 static int o_qv, o_qh, o_qend;	/* queued character position */
 static int o_rh, o_rv, o_rdeg;	/* previous rotation position and degree */
+static int o_gname;		/* use glyphshow for all glyphs */
 
 char o_fonts[FNLEN * NFONTS] = " ";
 
@@ -35,6 +36,11 @@ static void o_flush(void)
 	o_qtype = 0;
 }
 
+void outgname(int g)
+{
+	o_gname = g;
+}
+
 void outpage(void)
 {
 	o_flush();
@@ -48,7 +54,7 @@ void outpage(void)
 
 static void o_queue(struct glyph *g)
 {
-	int type = 1 + (g->pos <= 0);
+	int type = 1 + (g->pos <= 0 || o_gname);
 	if (o_qtype != type || o_qend != o_h || o_qv != o_v) {
 		o_flush();
 		o_qh = o_h;

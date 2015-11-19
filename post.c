@@ -1,7 +1,7 @@
 /*
  * neatpost troff postscript postprocessor
  *
- * Copyright (C) 2013-2014 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2015 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * This program is released under the Modified BSD license.
  */
@@ -412,7 +412,8 @@ static char *usage =
 	"Options:\n"
 	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
 	"  -p size \tset paper size (letter); e.g., a4, 2100x2970\n"
-	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n";
+	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n"
+	"  -n      \talways draw glyphs by name (ps glyphshow)\n";
 
 int main(int argc, char *argv[])
 {
@@ -424,6 +425,8 @@ int main(int argc, char *argv[])
 			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
 		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
 			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'n') {
+			outgname(1);
 		} else {
 			printf("%s", usage);
 			return 0;
