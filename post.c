@@ -75,8 +75,8 @@ static int nextnum(void)
 	nextskip();
 	while (1) {
 		c = next();
-		if (!n && c == '-') {
-			neg = 1;
+		if (!n && (c == '-' || c == '+')) {
+			neg = c == '-';
 			continue;
 		}
 		if (!isdigit(c))
@@ -86,6 +86,20 @@ static int nextnum(void)
 		n = n * 10 + c - '0';
 	}
 	return neg ? -n : n;
+}
+
+static int readnum(int *n)
+{
+	int c;
+	do {
+		c = next();
+	} while (c == ' ');
+	back(c);
+	if (c == '-' || c == '+' || (c >= '0' && c <= '9')) {
+		*n = nextnum();
+		return 0;
+	}
+	return 1;
 }
 
 static int iseol(void)
@@ -138,11 +152,15 @@ static void readln(char *s)
 static void postline(void)
 {
 	int h, v;
-	while (!iseol()) {
-		h = nextnum();
-		v = nextnum();
+	while (!readnum(&h) && !readnum(&v))
 		drawl(h, v);
-	}
+}
+
+static void postarc(void)
+{
+	int h1, v1, h2, v2;
+	if (!readnum(&h1) && !readnum(&v1) && !readnum(&h2) && !readnum(&v2))
+		drawa(h1, v1, h2, v2);
 }
 
 static void postspline(void)
@@ -154,9 +172,7 @@ static void postspline(void)
 		drawl(h1, v1);
 		return;
 	}
-	while (!iseol()) {
-		h2 = nextnum();
-		v2 = nextnum();
+	while (!readnum(&h2) && !readnum(&v2)) {
 		draws(h1, v1, h2, v2);
 		h1 = h2;
 		v1 = v2;
@@ -164,9 +180,33 @@ static void postspline(void)
 	draws(h1, v1, 0, 0);
 }
 
+static void postpoly(void)
+{
+	int l = 'l';
+	int c;
+	while (!iseol() && (l == 'l' || l == '~' || l == 'a')) {
+		do {
+			c = next();
+		} while (c == ' ');
+		back(c);
+		if (c != '-' && c != '+' && (c < '0' || c > '9')) {
+			l = c;
+			while (c >= 0 && !isspace(c))
+				c = next();
+			continue;
+		}
+		if (l == 'l')
+			postline();
+		if (l == '~')
+			postspline();
+		if (l == 'a')
+			postarc();
+	}
+}
+
 static void postdraw(void)
 {
-	int h1, h2, v1, v2;
+	int h1, v1;
 	int c = next();
 	drawbeg();
 	switch (tolower(c)) {
@@ -184,17 +224,13 @@ static void postdraw(void)
 		drawe(h1, v1);
 		break;
 	case 'a':
-		h1 = nextnum();
-		v1 = nextnum();
-		h2 = nextnum();
-		v2 = nextnum();
-		drawa(h1, v1, h2, v2);
+		postarc();
 		break;
 	case '~':
 		postspline();
 		break;
 	case 'p':
-		postline();
+		postpoly();
 		break;
 	}
 	drawend(c == 'p' || c == 'P', c == 'E' || c == 'C' || c == 'P');
