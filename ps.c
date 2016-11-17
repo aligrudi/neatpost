@@ -120,7 +120,7 @@ void ps_header(int pagewidth, int pageheight, int linewidth)
 {
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");
-	out("%%%%Creator: neatroff - http://litcave.rudi.ir/\n");
+	out("%%%%Creator: Neatroff - http://litcave.rudi.ir/\n");
 	out("%%%%DocumentFonts: (atend)\n");
 	out("%%%%Pages: (atend)\n");
 	out("%%%%EndComments\n");
