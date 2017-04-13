@@ -12,12 +12,15 @@ struct font {
 	int gl_n, gl_sz;		/* number of glyphs in the font */
 	struct dict *gl_dict;		/* mapping from gl[i].id to i */
 	struct dict *ch_dict;		/* charset mapping */
+	struct dict *ch_map;		/* character aliases */
 };
 
 /* find a glyph by its name */
 struct glyph *font_find(struct font *fn, char *name)
 {
 	int i = dict_get(fn->ch_dict, name);
+	if (i < 0)	/* maybe a character alias */
+		i = dict_get(fn->ch_map, name);
 	return i >= 0 ? fn->gl + i : NULL;
 }
 
@@ -79,9 +82,11 @@ static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 			if (sscanf(tok, "%d", &g->pos) != 1)
 				g->pos = 0;
 		}
+		dict_put(fn->ch_dict, name, *gid);
+		(*n)++;
+	} else {
+		dict_put(fn->ch_map, name, *gid);
 	}
-	dict_put(fn->ch_dict, name, *gid);
-	(*n)++;
 	return 0;
 }
 
@@ -111,6 +116,7 @@ struct font *font_open(char *path)
 	memset(fn, 0, sizeof(*fn));
 	fn->gl_dict = dict_make(-1, 1);
 	fn->ch_dict = dict_make(-1, 1);
+	fn->ch_map = dict_make(-1, 1);
 	while (fscanf(fin, "%s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
@@ -139,6 +145,7 @@ void font_close(struct font *fn)
 {
 	dict_free(fn->gl_dict);
 	dict_free(fn->ch_dict);
+	dict_free(fn->ch_map);
 	free(fn->gl);
 	free(fn);
 }
