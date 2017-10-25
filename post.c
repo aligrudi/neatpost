@@ -1,7 +1,7 @@
 /*
  * NEATPOST: NEATROFF'S POSTSCRIPT POSTPROCESSOR
  *
- * Copyright (C) 2013-2016 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2017 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -259,6 +259,8 @@ static void postps(void)
 		outrotate(atoi(arg));
 	if (!strcmp("eps", cmd))
 		outeps(arg);
+	if (!strcmp("link", cmd))
+		outlink(arg);
 	if (!strcmp("BeginObject", cmd))
 		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))

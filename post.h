@@ -53,6 +53,7 @@ void outsize(int s);
 void outcolor(int c);
 void outrotate(int deg);
 void outeps(char *eps);
+void outlink(char *spec);
 void outpage(void);
 void outmnt(int f);
 void outgname(int g);
