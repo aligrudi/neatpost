@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -311,10 +312,17 @@ void outlink(char *spec)
 	char lnk[1 << 12];
 	int hwid, vwid;
 	int nspec;
-	if ((nspec = sscanf(spec, "%s %d %d", lnk, &hwid, &vwid)) < 3)
+	if ((nspec = sscanf(spec, "%s %d %d", lnk, &hwid, &vwid)) != 3)
 		return;
 	o_flush();
-	outf("[ /Rect [ %d %d t %d %d t ] /Action << /Subtype /URI /URI (%s) >> "
-		"/Open true /Subtype /Link /LNK pdfmark\n",
-		o_h, o_v, o_h + hwid, o_v + vwid, lnk);
+	if (isdigit((unsigned char) lnk[0])) {
+		outf("[ /Rect [ %d %d t %d %d t ] /Page %s"
+			"/Subtype /Link /LNK pdfmark\n",
+			o_h, o_v, o_h + hwid, o_v + vwid, lnk);
+	} else {
+		outf("[ /Rect [ %d %d t %d %d t ]"
+			"/Action << /Subtype /URI /URI (%s) >> /Open true "
+			"/Subtype /Link /LNK pdfmark\n",
+			o_h, o_v, o_h + hwid, o_v + vwid, lnk);
+	}
 }
