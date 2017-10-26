@@ -338,10 +338,12 @@ void outlink(char *spec)
 	if (!lnk[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) != 2)
 		return;
 	o_flush();
-	if (isdigit((unsigned char) lnk[0])) {
-		outf("[ /Rect [ %d %d t %d %d t ] /Page %s"
+	if (lnk[0] == '#' || isdigit((unsigned char) lnk[0])) {
+		outf("[ /Rect [ %d %d t %d %d t ] %s%s"
 			"/Subtype /Link /LNK pdfmark\n",
-			o_h, o_v, o_h + hwid, o_v + vwid, lnk);
+			o_h, o_v, o_h + hwid, o_v + vwid,
+			lnk[0] == '#' ? "/Dest /" : "/Page ",
+			lnk[0] == '#' ? lnk + 1 : lnk);
 	} else {
 		outf("[ /Rect [ %d %d t %d %d t ]"
 			"/Action << /Subtype /URI /URI (%s) >> /Open true "
