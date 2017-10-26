@@ -125,11 +125,13 @@ static char *prolog =
 	"} bind def\n";
 
 /* pagewidth and pageheight are in tenths of a millimetre */
-void ps_header(int pagewidth, int pageheight, int linewidth)
+void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
 {
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");
-	out("%%%%Creator: Neatroff - http://litcave.rudi.ir/\n");
+	if (title)
+		out("%%%%Title: (%s)\n", title);
+	out("%%%%Creator: Neatroff\n");
 	out("%%%%DocumentFonts: (atend)\n");
 	out("%%%%Pages: (atend)\n");
 	out("%%%%EndComments\n");

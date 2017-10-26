@@ -21,6 +21,7 @@
 #include <string.h>
 #include "post.h"
 
+static char *ps_title;		/* document title */
 static int ps_pagewidth = 2159;	/* page width (tenths of a millimetre) */
 static int ps_pageheight = 2794;/* page height (tenths of a millimetre) */
 static int ps_linewidth = 40;	/* drawing line thickness in thousandths of an em */
@@ -288,7 +289,7 @@ static void postx(void)
 			fprintf(stderr, "neatpost: cannot open device %s\n", postdev);
 			exit(1);
 		}
-		ps_header(ps_pagewidth, ps_pageheight, ps_linewidth);
+		ps_header(ps_title, ps_pagewidth, ps_pageheight, ps_linewidth);
 		break;
 	case 'T':
 		nextword(postdev);
@@ -460,6 +461,7 @@ static char *usage =
 	"Options:\n"
 	"  -F dir  \tset font directory (" TROFFFDIR ")\n"
 	"  -p size \tset paper size (letter); e.g., a4, 2100x2970\n"
+	"  -t title\tspecify document title\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n"
 	"  -n      \talways draw glyphs by name (ps glyphshow)\n";
 
@@ -475,6 +477,8 @@ int main(int argc, char *argv[])
 			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
 		} else if (argv[i][0] == '-' && argv[i][1] == 'n') {
 			outgname(1);
+		} else if (argv[i][0] == '-' && argv[i][1] == 't') {
+			ps_title = argv[i][2] ? argv[i] + 2 : argv[++i];
 		} else {
 			printf("%s", usage);
 			return 0;

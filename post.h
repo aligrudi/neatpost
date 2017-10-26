@@ -70,7 +70,7 @@ void drawa(int h1, int v1, int h2, int v2);
 void draws(int h1, int v1, int h2, int v2);
 
 /* postscript functions */
-void ps_header(int pagewidth, int pageheight, int linewidth);
+void ps_header(char *title, int pagewidth, int pageheight, int linewidth);
 void ps_trailer(int pages, char *fonts);
 void ps_pagebeg(int n);
 void ps_pageend(int n);
