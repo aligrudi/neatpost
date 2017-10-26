@@ -255,6 +255,27 @@ void draws(int h1, int v1, int h2, int v2)
 	outrel(h1, v1);
 }
 
+static char *strcut(char *dst, char *src)
+{
+	while (*src == ' ' || *src == '\n')
+		src++;
+	if (src[0] == '"') {
+		src++;
+		while (*src && (src[0] != '"' || src[1] == '"')) {
+			if (*src == '"')
+				src++;
+			*dst++ = *src++;
+		}
+		if (*src == '"')
+			src++;
+	} else {
+		while (*src && *src != ' ' && *src != '\n')
+			*dst++ = *src++;
+	}
+	*dst = '\0';
+	return src;
+}
+
 void outeps(char *spec)
 {
 	char eps[1 << 12];
@@ -263,11 +284,12 @@ void outeps(char *spec)
 	int hwid, vwid;
 	FILE *filp;
 	int nspec, nbb;
-	if ((nspec = sscanf(spec, "%s %d %d", eps, &hwid, &vwid)) < 1)
+	spec = strcut(eps, spec);
+	if (!eps[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) < 0)
 		return;
-	if (nspec < 2)
+	if (nspec < 1)
 		hwid = 0;
-	if (nspec < 3)
+	if (nspec < 2)
 		vwid = 0;
 	if (!(filp = fopen(eps, "r")))
 		return;
@@ -312,7 +334,8 @@ void outlink(char *spec)
 	char lnk[1 << 12];
 	int hwid, vwid;
 	int nspec;
-	if ((nspec = sscanf(spec, "%s %d %d", lnk, &hwid, &vwid)) != 3)
+	spec = strcut(lnk, spec);
+	if (!lnk[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) != 2)
 		return;
 	o_flush();
 	if (isdigit((unsigned char) lnk[0])) {
