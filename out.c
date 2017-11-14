@@ -285,8 +285,9 @@ void outeps(char *spec)
 	FILE *filp;
 	int nspec, nbb;
 	spec = strcut(eps, spec);
-	if (!eps[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) < 0)
+	if (!eps[0])
 		return;
+	nspec = sscanf(spec, "%d %d", &hwid, &vwid);
 	if (nspec < 1)
 		hwid = 0;
 	if (nspec < 2)
