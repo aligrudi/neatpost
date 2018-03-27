@@ -217,15 +217,35 @@ static int o_loadfont(struct glyph *g)
 #define PREC		1000
 #define PRECN		"3"
 
+/* convert troff position to pdf position; returns a static buffer */
+static char *pdfpos(int uh, int uv)
+{
+	static char buf[64];
+	int h = uh * PREC * 72 / dev_res;
+	int v = pdf_height * PREC - (uv * PREC * 72 / dev_res);
+	sprintf(buf, "%d.%0" PRECN "d %d.%0" PRECN "d",
+		h / PREC, h % PREC, v / PREC, v % PREC);
+	return buf;
+}
+
+/* convert troff color to pdf color; returns a static buffer */
+static char *pdfcolor(int m)
+{
+	static char buf[64];
+	int r = CLR_R(m) * 1000 / 255;
+	int g = CLR_G(m) * 1000 / 255;
+	int b = CLR_B(m) * 1000 / 255;
+	sbuf_printf(pg, "%d.%03d %d.%03d %d.%03d",
+		r / 1000, r % 1000, g / 1000, g % 1000, b / 1000, b % 1000);
+	return buf;
+}
+
 static void o_queue(struct glyph *g)
 {
 	int pos;
 	if (o_h != p_h || o_v != p_v) {
-		long h = o_h * PREC * 72 / dev_res;
-		long v = pdf_height * PREC - (o_v * PREC * 72 / dev_res);
 		o_flush();
-		sbuf_printf(pg, "1 0 0 1 %d.%0" PRECN "d %d.%0" PRECN "d Tm\n",
-			h / PREC, h % PREC, v / PREC, v % PREC);
+		sbuf_printf(pg, "1 0 0 1 %s Tm\n", pdfpos(o_h, o_v));
 		p_h = o_h;
 		p_v = o_v;
 	}
@@ -240,12 +260,8 @@ static void o_queue(struct glyph *g)
 static void out_fontup(void)
 {
 	if (o_m != p_m) {
-		int r = CLR_R(o_m) * 1000 / 255;
-		int g = CLR_G(o_m) * 1000 / 255;
-		int b = CLR_B(o_m) * 1000 / 255;
 		o_flush();
-		sbuf_printf(pg, "%d.%03d %d.%03d %d.%03d rg\n",
-			r / 1000, r % 100, g / 1000, g % 1000, b / 1000, b % 1000);
+		sbuf_printf(pg, "%s rg\n", pdfcolor(o_m));
 		p_m = o_m;
 	}
 	if (o_pf != p_pf || o_s != p_s) {
@@ -338,12 +354,36 @@ void outgname(int g)
 {
 }
 
+static int draw_path;	/* number of path segments */
+static int draw_point;	/* point was set for postscript newpath */
+
+static void drawmv(void)
+{
+	if (!draw_point)
+		sbuf_printf(pg, "%d %d m ", o_h, o_v);
+	draw_point = 1;
+}
+
 void drawbeg(void)
 {
+	o_flush();
+	out_fontup();
+	if (draw_path)
+		return;
+	sbuf_printf(pg, "%s m\n", pdfpos(o_h, o_v));
 }
 
 void drawend(int close, int fill)
 {
+	if (draw_path)
+		return;
+	draw_point = 0;
+	if (!fill)		/* stroking color */
+		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
+	if (fill)
+		sbuf_printf(pg, "f\n");
+	else
+		sbuf_printf(pg, close ? "s\n" : "S\n");
 }
 
 void drawmbeg(char *s)
@@ -356,6 +396,9 @@ void drawmend(char *s)
 
 void drawl(int h, int v)
 {
+	o_flush();
+	outrel(h, v);
+	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
 void drawc(int c)
