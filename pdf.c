@@ -403,18 +403,22 @@ void drawl(int h, int v)
 
 void drawc(int c)
 {
+	outrel(c, 0);
 }
 
 void drawe(int h, int v)
 {
+	outrel(h, 0);
 }
 
 void drawa(int h1, int v1, int h2, int v2)
 {
+	outrel(h1 + h2, v1 + v2);
 }
 
 void draws(int h1, int v1, int h2, int v2)
 {
+	outrel(h1, v1);
 }
 
 void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
