@@ -240,7 +240,12 @@ static void o_queue(struct glyph *g)
 static void out_fontup(void)
 {
 	if (o_m != p_m) {
+		int r = CLR_R(o_m) * 1000 / 255;
+		int g = CLR_G(o_m) * 1000 / 255;
+		int b = CLR_B(o_m) * 1000 / 255;
 		o_flush();
+		sbuf_printf(pg, "%d.%03d %d.%03d %d.%03d rg\n",
+			r / 1000, r % 100, g / 1000, g % 1000, b / 1000, b % 1000);
 		p_m = o_m;
 	}
 	if (o_pf != p_pf || o_s != p_s) {
