@@ -7,6 +7,7 @@
 struct font {
 	char name[FNLEN];
 	char fontname[FNLEN];
+	char fontpath[1024];
 	int spacewid;
 	struct glyph *gl;		/* glyphs present in the font */
 	int gl_n, gl_sz;		/* number of glyphs in the font */
@@ -108,7 +109,7 @@ struct font *font_open(char *path)
 	fin = fopen(path, "r");
 	if (!fin)
 		return NULL;
-	fn = xmalloc(sizeof(*fn));
+	fn = malloc(sizeof(*fn));
 	if (!fn) {
 		fclose(fin);
 		return NULL;
@@ -126,6 +127,12 @@ struct font *font_open(char *path)
 			fscanf(fin, "%s", fn->name);
 		} else if (!strcmp("fontname", tok)) {
 			fscanf(fin, "%s", fn->fontname);
+		} else if (!strcmp("fontpath", tok)) {
+			int c = fgetc(fin);
+			while (c == ' ')
+				c = fgetc(fin);
+			ungetc(c, fin);
+			tilleol(fin, fn->fontpath);
 		} else if (!strcmp("ligatures", tok)) {
 			while (fscanf(fin, "%s", tok) == 1)
 				if (!strcmp("0", tok))
@@ -165,4 +172,19 @@ int font_swid(struct font *fn, int sz)
 char *font_name(struct font *fn)
 {
 	return fn->fontname;
+}
+
+char *font_path(struct font *fn)
+{
+	return fn->fontpath;
+}
+
+int font_glnum(struct font *fn, struct glyph *g)
+{
+	return g - fn->gl;
+}
+
+struct glyph *font_glget(struct font *fn, int id)
+{
+	return id >= 0 && id < fn->gl_n ? &fn->gl[id] : NULL;
 }

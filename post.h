@@ -1,6 +1,6 @@
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
-#define NFONTS		32	/* number of fonts */
+#define NFONTS		1024	/* number of fonts */
 #define FNLEN		64	/* font name length */
 #define GNLEN		32	/* glyph name length */
 #define ILNLEN		1000	/* line limit of input files */
@@ -41,6 +41,9 @@ struct glyph *font_find(struct font *fn, char *name);
 int font_wid(struct font *fn, int sz, int w);
 int font_swid(struct font *fn, int sz);
 char *font_name(struct font *fn);
+char *font_path(struct font *fn);
+int font_glnum(struct font *fn, struct glyph *g);
+struct glyph *font_glget(struct font *fn, int id);
 
 /* output functions */
 void out(char *s, ...);
@@ -57,7 +60,6 @@ void outlink(char *spec);
 void outpage(void);
 void outmnt(int f);
 void outgname(int g);
-extern char o_fonts[];
 
 void drawbeg(void);
 void drawend(int close, int fill);
@@ -71,7 +73,7 @@ void draws(int h1, int v1, int h2, int v2);
 
 /* postscript functions */
 void ps_header(char *title, int pagewidth, int pageheight, int linewidth);
-void ps_trailer(int pages, char *fonts);
+void ps_trailer(int pages);
 void ps_pagebeg(int n);
 void ps_pageend(int n);
 
@@ -102,5 +104,14 @@ int dict_val(struct dict *d, int idx);
 int dict_prefix(struct dict *d, char *key, int *idx);
 
 /* memory allocation */
-void *xmalloc(long len);
 void *mextend(void *old, long oldsz, long newsz, int memsz);
+
+/* string buffers */
+struct sbuf *sbuf_make(void);
+char *sbuf_buf(struct sbuf *sb);
+char *sbuf_done(struct sbuf *sb);
+void sbuf_free(struct sbuf *sb);
+int sbuf_len(struct sbuf *sbuf);
+void sbuf_str(struct sbuf *sbuf, char *s);
+void sbuf_printf(struct sbuf *sbuf, char *s, ...);
+void sbuf_chr(struct sbuf *sbuf, int c);

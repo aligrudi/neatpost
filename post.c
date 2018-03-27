@@ -1,7 +1,7 @@
 /*
- * NEATPOST: NEATROFF'S POSTSCRIPT POSTPROCESSOR
+ * NEATPOST: NEATROFF'S POSTSCRIPT/PDF POSTPROCESSOR
  *
- * Copyright (C) 2013-2017 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2018 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -433,27 +433,13 @@ static void setpagesize(char *s)
 	ps_pageheight -= ps_pageheight % 10;
 }
 
-static void errdie(char *msg)
-{
-	fprintf(stderr, msg);
-	exit(1);
-}
-
 void *mextend(void *old, long oldsz, long newsz, int memsz)
 {
-	void *new = xmalloc(newsz * memsz);
+	void *new = malloc(newsz * memsz);
 	memcpy(new, old, oldsz * memsz);
 	memset(new + oldsz * memsz, 0, (newsz - oldsz) * memsz);
 	free(old);
 	return new;
-}
-
-void *xmalloc(long len)
-{
-	void *m = malloc(len);
-	if (!m)
-		errdie("neatroff: malloc() failed\n");
-	return m;
 }
 
 static char *usage =
@@ -485,7 +471,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	post();
-	ps_trailer(o_pages, o_fonts);
+	ps_trailer(o_pages);
 	dev_close();
 	return 0;
 }
