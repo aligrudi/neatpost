@@ -128,7 +128,7 @@ static void font_out(struct font *fn, int f)
 	pdfout("<<\n");
 	pdfout("  /Type /FontDescriptor\n");
 	pdfout("  /FontName /%s\n", font_ps[f]);
-	pdfout("  /Flags 0\n");
+	pdfout("  /Flags 4\n");
 	pdfout("  /MissingWidth 255\n");
 	pdfout("  /StemV 100\n");
 	pdfout("  /StemH 100\n");
