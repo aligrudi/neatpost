@@ -171,8 +171,8 @@ static void psfont_write(struct psfont *ps, int ix)
 	pdfout("  /LastChar %d\n", gcnt - 1);
 	pdfout("  /Widths [");
 	for (i = 0; i < gcnt; i++)
-		pdfout(" %d", (map[i] >= 0 ? font_glget(fn, map[i])->wid : 0)
-				* dev_res / 72);
+		pdfout(" %d", (long) (map[i] >= 0 ? font_glget(fn, map[i])->wid : 0)
+				* 100 * 72 / dev_res);
 	pdfout(" ]\n");
 	pdfout("  /FontDescriptor %d 0 R\n", ps->objdes);
 	pdfout("  /Encoding %d 0 R\n", enc_obj);
@@ -248,7 +248,7 @@ static void psfont_done(void)
 static void o_flush(void)
 {
 	if (o_queued == 1)
-		sbuf_printf(pg, "> Tj\n");
+		sbuf_printf(pg, ">] TJ\n");
 	o_queued = 0;
 }
 
@@ -267,17 +267,27 @@ static int o_loadfont(struct glyph *g)
 	return o_fsn - 1;
 }
 
-#define PREC		1000
-#define PRECN		"3"
+#define PREC		100
+#define PRECN		"2"
 
 /* convert troff position to pdf position; returns a static buffer */
 static char *pdfpos(int uh, int uv)
 {
 	static char buf[64];
-	int h = uh * PREC * 72 / dev_res;
-	int v = pdf_height * PREC - (uv * PREC * 72 / dev_res);
-	sprintf(buf, "%d.%0" PRECN "d %d.%0" PRECN "d",
-		h / PREC, h % PREC, v / PREC, v % PREC);
+	int h = (long) uh * PREC * 72 / dev_res;
+	int v = (long) pdf_height * PREC - (long) uv * PREC * 72 / dev_res;
+	sprintf(buf, "%s%d.%0" PRECN "d %s%d.%0" PRECN "d",
+		h < 0 ? "-" : "", abs(h) / PREC, abs(h) % PREC,
+		v < 0 ? "-" : "", abs(v) / PREC, abs(v) % PREC);
+	return buf;
+}
+
+/* troff length to thousands of a unit of text space; returns a static buffer */
+static char *pdfunit(int uh, int sz)
+{
+	static char buf[64];
+	int h = (long) uh * 1000 * 72 / sz / dev_res;
+	sprintf(buf, "%s%d", h < 0 ? "-" : "", abs(h));
 	return buf;
 }
 
@@ -295,17 +305,19 @@ static char *pdfcolor(int m)
 
 static void o_queue(struct glyph *g)
 {
-	if (o_h != p_h || o_v != p_v) {
+	if (o_v != p_v) {
 		o_flush();
 		sbuf_printf(pg, "1 0 0 1 %s Tm\n", pdfpos(o_h, o_v));
 		p_h = o_h;
 		p_v = o_v;
 	}
 	if (!o_queued)
-		sbuf_printf(pg, "<");
+		sbuf_printf(pg, "[<");
 	o_queued = 1;
+	if (o_h != p_h)
+		sbuf_printf(pg, "> %s <", pdfunit(p_h - o_h, o_s));
 	sbuf_printf(pg, "%02x", psfont_gpos(g));
-	p_h += font_wid(g->font, o_s, g->wid);
+	p_h = o_h + font_wid(g->font, o_s, g->wid);
 }
 
 static void out_fontup(void)
@@ -315,7 +327,7 @@ static void out_fontup(void)
 		sbuf_printf(pg, "%s rg\n", pdfcolor(o_m));
 		p_m = o_m;
 	}
-	if (o_pf != p_pf || o_s != p_s) {
+	if (o_pf >= 0 && (o_pf != p_pf || o_s != p_s)) {
 		int fn = PSFN_FN(o_fs[o_pf]);
 		int ix = PSFN_IX(o_fs[o_pf]);
 		o_flush();
@@ -389,11 +401,13 @@ void outpage(void)
 {
 	o_v = 0;
 	o_h = 0;
+	p_pf = 0;
 	p_v = 0;
 	p_h = 0;
 	p_s = 0;
 	p_f = 0;
 	p_m = 0;
+	o_pf = -1;
 }
 
 void outmnt(int f)
