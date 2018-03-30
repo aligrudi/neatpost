@@ -117,9 +117,9 @@ struct font *font_open(char *path)
 	}
 	memset(fn, 0, sizeof(*fn));
 	snprintf(fn->desc, sizeof(fn->desc), "%s", path);
-	fn->gl_dict = dict_make(-1, 1);
-	fn->ch_dict = dict_make(-1, 1);
-	fn->ch_map = dict_make(-1, 1);
+	fn->gl_dict = dict_make(-1, 1, 0);
+	fn->ch_dict = dict_make(-1, 1, 0);
+	fn->ch_map = dict_make(-1, 1, 0);
 	while (fscanf(fin, "%s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
