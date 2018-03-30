@@ -32,6 +32,7 @@ int dev_mnt(int pos, char *id, char *name);
 struct font *dev_font(int fn);
 int dev_fontid(struct font *fn);
 struct glyph *dev_glyph(char *c, int fn);
+struct font *dev_fontopen(char *name);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -44,6 +45,7 @@ char *font_name(struct font *fn);
 char *font_path(struct font *fn);
 int font_glnum(struct font *fn, struct glyph *g);
 struct glyph *font_glget(struct font *fn, int id);
+char *font_desc(struct font *fn);
 
 /* output functions */
 void out(char *s, ...);

@@ -24,17 +24,22 @@ static void skipline(FILE* filp)
 	} while (c != '\n' && c != EOF);
 }
 
-int dev_mnt(int pos, char *id, char *name)
+struct font *dev_fontopen(char *name)
 {
 	char path[PATHLEN];
-	struct font *fn;
-	if (pos >= NFONTS)
-		return -1;
 	if (strchr(name, '/'))
 		strcpy(path, name);
 	else
 		sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
-	fn = font_open(path);
+	return font_open(path);
+}
+
+int dev_mnt(int pos, char *id, char *name)
+{
+	struct font *fn;
+	if (pos >= NFONTS)
+		return -1;
+	fn = dev_fontopen(name);
 	if (!fn)
 		return -1;
 	if (fn_font[pos])

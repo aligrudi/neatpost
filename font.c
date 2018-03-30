@@ -6,6 +6,7 @@
 
 struct font {
 	char name[FNLEN];
+	char desc[1024];
 	char fontname[FNLEN];
 	char fontpath[1024];
 	int spacewid;
@@ -115,6 +116,7 @@ struct font *font_open(char *path)
 		return NULL;
 	}
 	memset(fn, 0, sizeof(*fn));
+	snprintf(fn->desc, sizeof(fn->desc), "%s", path);
 	fn->gl_dict = dict_make(-1, 1);
 	fn->ch_dict = dict_make(-1, 1);
 	fn->ch_map = dict_make(-1, 1);
@@ -187,4 +189,9 @@ int font_glnum(struct font *fn, struct glyph *g)
 struct glyph *font_glget(struct font *fn, int id)
 {
 	return id >= 0 && id < fn->gl_n ? &fn->gl[id] : NULL;
+}
+
+char *font_desc(struct font *fn)
+{
+	return fn->desc;
 }
