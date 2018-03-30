@@ -143,6 +143,7 @@ static void psfont_write(struct psfont *ps, int ix)
 	char *ext = strrchr(ps->path, '.');
 	struct font *fn = dev_fontopen(ps->desc);
 	int map[256] = {0};
+	char gcnt = ps->lastfn == ix ? ps->lastgl : 256;
 	/* finding out the mapping */
 	for (i = 0; i < 256; i++)
 		map[i] = -1;
@@ -154,7 +155,7 @@ static void psfont_write(struct psfont *ps, int ix)
 	pdfout("<<\n");
 	pdfout("  /Type /Encoding\n");
 	pdfout("  /Differences [ 0");
-	for (i = 0; i < 256; i++)
+	for (i = 0; i < gcnt; i++)
 		pdfout(" /%s", map[i] >= 0 ? font_glget(fn, map[i])->id : ".notdef");
 	pdfout(" ]\n");
 	pdfout(">>\n");
@@ -167,9 +168,9 @@ static void psfont_write(struct psfont *ps, int ix)
 		ext && !strcmp(".ttf", ext) ? "TrueType" : "Type1");
 	pdfout("  /BaseFont /%s\n", ps->name);
 	pdfout("  /FirstChar 0\n");
-	pdfout("  /LastChar 255\n");
+	pdfout("  /LastChar %d\n", gcnt - 1);
 	pdfout("  /Widths [");
-	for (i = 0; i < 256; i++)
+	for (i = 0; i < gcnt; i++)
 		pdfout(" %d", (map[i] >= 0 ? font_glget(fn, map[i])->wid : 0)
 				* dev_res / 72);
 	pdfout(" ]\n");
