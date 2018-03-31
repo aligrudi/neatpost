@@ -142,8 +142,8 @@ static void psfont_write(struct psfont *ps, int ix)
 	int enc_obj;
 	char *ext = strrchr(ps->path, '.');
 	struct font *fn = dev_fontopen(ps->desc);
-	int map[256] = {0};
-	char gcnt = ps->lastfn == ix ? ps->lastgl : 256;
+	int map[256];
+	int gcnt = ix < ps->lastfn ? 256 : ps->lastgl;
 	/* finding out the mapping */
 	for (i = 0; i < 256; i++)
 		map[i] = -1;
