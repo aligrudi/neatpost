@@ -267,19 +267,22 @@ static int o_loadfont(struct glyph *g)
 	return o_fsn - 1;
 }
 
-#define PREC		100
-#define PRECN		"2"
+/* like pdfpos() but assume that uh and uv are multiplied by 100 */
+static char *pdfpos00(int uh, int uv)
+{
+	static char buf[64];
+	int h = (long) uh * 72 / dev_res;
+	int v = (long) pdf_height * 100 - (long) uv * 72 / dev_res;
+	sprintf(buf, "%s%d.%02d %s%d.%02d",
+		h < 0 ? "-" : "", abs(h) / 100, abs(h) % 100,
+		v < 0 ? "-" : "", abs(v) / 100, abs(v) % 100);
+	return buf;
+}
 
 /* convert troff position to pdf position; returns a static buffer */
 static char *pdfpos(int uh, int uv)
 {
-	static char buf[64];
-	int h = (long) uh * PREC * 72 / dev_res;
-	int v = (long) pdf_height * PREC - (long) uv * PREC * 72 / dev_res;
-	sprintf(buf, "%s%d.%0" PRECN "d %s%d.%0" PRECN "d",
-		h < 0 ? "-" : "", abs(h) / PREC, abs(h) % PREC,
-		v < 0 ? "-" : "", abs(v) / PREC, abs(v) % PREC);
-	return buf;
+	return pdfpos00(uh * 100, uv * 100);
 }
 
 /* troff length to thousands of a unit of text space; returns a static buffer */
@@ -455,18 +458,48 @@ void drawmend(char *s)
 
 void drawl(int h, int v)
 {
-	o_flush();
 	outrel(h, v);
 	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
+static void drawquad(int ch, int cv)
+{
+	long b = 551915;
+	long x0 = o_h * 1000;
+	long y0 = o_v * 1000;
+	long x3 = x0 + ch * 1000 / 2;
+	long y3 = y0 + cv * 1000 / 2;
+	long x1 = x0;
+	long y1 = y0 + cv * b / 1000 / 2;
+	long x2 = x0 + ch * b / 1000 / 2;
+	long y2 = y3;
+	if (ch * cv < 0) {
+		x1 = x3 - ch * b / 1000 / 2;
+		y1 = y0;
+		x2 = x3;
+		y2 = y3 - cv * b / 1000 / 2;
+	}
+	sbuf_printf(pg, "%s ", pdfpos00(x1 / 10, y1 / 10));
+	sbuf_printf(pg, "%s ", pdfpos00(x2 / 10, y2 / 10));
+	sbuf_printf(pg, "%s c\n", pdfpos00(x3 / 10, y3 / 10));
+	outrel(ch / 2, cv / 2);
+}
+
 void drawc(int c)
 {
+	drawquad(+c, +c);
+	drawquad(+c, -c);
+	drawquad(-c, -c);
+	drawquad(-c, +c);
 	outrel(c, 0);
 }
 
 void drawe(int h, int v)
 {
+	drawquad(+h, +v);
+	drawquad(+h, -v);
+	drawquad(-h, -v);
+	drawquad(-h, +v);
 	outrel(h, 0);
 }
 
@@ -478,6 +511,7 @@ void drawa(int h1, int v1, int h2, int v2)
 void draws(int h1, int v1, int h2, int v2)
 {
 	outrel(h1, v1);
+	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
 void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
