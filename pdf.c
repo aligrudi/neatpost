@@ -47,13 +47,20 @@ struct psfont {
 static struct psfont *psfonts;
 static int psfonts_n, psfonts_sz;
 
-/* print pdf output */
+/* print formatted pdf output */
 static void pdfout(char *s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
 	pdf_pos += vprintf(s, ap);
 	va_end(ap);
+}
+
+/* print pdf output */
+static void pdfouts(char *s)
+{
+	fputs(s, stdout);
+	pdf_pos += strlen(s);
 }
 
 /* allocate an object number */
@@ -117,13 +124,25 @@ static int fonttype(char *path)
 	return '1';
 }
 
+static void encodehex(struct sbuf *d, char *s, int n)
+{
+	static char hex[] = "0123456789ABCDEF";
+	int i;
+	for (i = 0; i < n; i++) {
+		sbuf_chr(d, hex[((unsigned char) s[i]) >> 4]);
+		sbuf_chr(d, hex[((unsigned char) s[i]) & 0x0f]);
+		if (i % 80 == 79 && i + 1 < n)
+			sbuf_chr(d, '\n');
+	}
+	sbuf_str(d, ">\n");
+}
+
 /* include font descriptor; returns object id */
 static int psfont_writedesc(struct psfont *ps)
 {
 	int str_obj = -1;
 	int des_obj;
 	char buf[1 << 10];
-	int i;
 	if (fonttype(ps->path) == '1' || fonttype(ps->path) == 't') {
 		int fd = open(ps->path, O_RDONLY);
 		struct sbuf *ffsb = sbuf_make();
@@ -146,12 +165,7 @@ static int psfont_writedesc(struct psfont *ps)
 			l1 -= l3;
 		}
 		/* encoding file contents */
-		for (i = 0; i < sbuf_len(ffsb); i++) {
-			sbuf_printf(sb, "%02x", (unsigned char) sbuf_buf(ffsb)[i]);
-			if (i % 40 == 39 && i + 1 < sbuf_len(ffsb))
-				sbuf_chr(sb, '\n');
-		}
-		sbuf_str(sb, ">\n");
+		encodehex(sb, sbuf_buf(ffsb), sbuf_len(ffsb));
 		/* write font data if it has nonzero length */
 		if (l1) {
 			str_obj = obj_beg(0);
@@ -165,7 +179,7 @@ static int psfont_writedesc(struct psfont *ps)
 				pdfout("  /Length3 %d\n", l3);
 			pdfout(">>\n");
 			pdfout("stream\n");
-			pdfout("%s", sbuf_buf(sb));
+			pdfouts(sbuf_buf(sb));
 			pdfout("endstream\n");
 			obj_end();
 		}
@@ -664,7 +678,7 @@ void ps_pageend(int n)
 	pdfout("  /Length %d\n", sbuf_len(pg));
 	pdfout(">>\n");
 	pdfout("stream\n");
-	pdfout("%s", sbuf_buf(pg));
+	pdfouts(sbuf_buf(pg));
 	pdfout("endstream\n");
 	obj_end();
 	/* the page object */
