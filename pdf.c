@@ -1,7 +1,9 @@
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "post.h"
 
 static char *pdf_title;		/* document title */
@@ -84,35 +86,90 @@ void out(char *s, ...)
 {
 }
 
+/* the length of the clear-text, encrypted, and fixed-content portions */
+static int type1lengths(char *t1, int l, int *l1, int *l2, int *l3)
+{
+	int i;
+	char *cleartext = t1;
+	char *encrypted = NULL;
+	char *fixedcont = NULL;
+	for (i = 0; i < l - 5 && !encrypted; i++)
+		if (t1[i] == 'e' && !memcmp("eexec", t1 + i, 5))
+			encrypted = t1 + i;
+	if (!encrypted)
+		return 1;
+	for (; i < l - 512 && !fixedcont; i++)
+		if (t1[i] == '0' && !memcmp("00000", t1 + i, 5))
+			fixedcont = t1 + i;
+	*l1 = encrypted - cleartext;
+	*l2 = fixedcont ? fixedcont - cleartext : 0;
+	return 0;
+}
+
+/* return font type: 't': TrueType, '1': Type 1, 'o': OpenType */
+static int fonttype(char *path)
+{
+	char *ext = strrchr(path, '.');
+	if (ext && !strcmp(".ttf", ext))
+		return 't';
+	if (ext && !strcmp(".otf", ext))
+		return 'o';
+	return '1';
+}
+
 /* include font descriptor; returns object id */
 static int psfont_writedesc(struct psfont *ps)
 {
-	int c, i;
 	int str_obj = -1;
 	int des_obj;
-	char *ext = strrchr(ps->path, '.');
-	if (ext && !strcmp(".ttf", ext)) {
-		FILE *fp = fopen(ps->path, "r");
+	char buf[1 << 10];
+	int i;
+	if (fonttype(ps->path) == '1' || fonttype(ps->path) == 't') {
+		int fd = open(ps->path, O_RDONLY);
+		struct sbuf *ffsb = sbuf_make();
 		struct sbuf *sb = sbuf_make();
-		c = fgetc(fp);
-		for (i = 0; c != EOF; i++) {
-			sbuf_printf(sb, "%02x", c);
-			c = fgetc(fp);
-			if (i % 40 == 39 && c != EOF)
+		int l1 = 0, l2 = 0, l3 = 0;
+		int nr;
+		/* reading the font file */
+		while ((nr = read(fd, buf, sizeof(buf))) > 0)
+			sbuf_mem(ffsb, buf, nr);
+		close(fd);
+		l1 = sbuf_len(ffsb);
+		/* initialize Type 1 lengths */
+		if (fonttype(ps->path) == '1') {
+			if (type1lengths(sbuf_buf(ffsb), sbuf_len(ffsb),
+					&l1, &l2, &l3))
+				l1 = 0;
+			/* remove the fixed-content portion of the font */
+			if (l3)
+				sbuf_cut(ffsb, l1 + l2);
+			l1 -= l3;
+		}
+		/* encoding file contents */
+		for (i = 0; i < sbuf_len(ffsb); i++) {
+			sbuf_printf(sb, "%02x", (unsigned char) sbuf_buf(ffsb)[i]);
+			if (i % 40 == 39 && i + 1 < sbuf_len(ffsb))
 				sbuf_chr(sb, '\n');
 		}
 		sbuf_str(sb, ">\n");
-		fclose(fp);
-		str_obj = obj_beg(0);
-		pdfout("<<\n");
-		pdfout("  /Filter /ASCIIHexDecode\n");
-		pdfout("  /Length %d\n", sbuf_len(sb));
-		pdfout("  /Length1 %d\n", i);
-		pdfout(">>\n");
-		pdfout("stream\n");
-		pdfout("%s", sbuf_buf(sb));
-		pdfout("endstream\n");
-		obj_end();
+		/* write font data if it has nonzero length */
+		if (l1) {
+			str_obj = obj_beg(0);
+			pdfout("<<\n");
+			pdfout("  /Filter /ASCIIHexDecode\n");
+			pdfout("  /Length %d\n", sbuf_len(sb));
+			pdfout("  /Length1 %d\n", l1);
+			if (fonttype(ps->path) == '1')
+				pdfout("  /Length2 %d\n", l2);
+			if (fonttype(ps->path) == '1')
+				pdfout("  /Length3 %d\n", l3);
+			pdfout(">>\n");
+			pdfout("stream\n");
+			pdfout("%s", sbuf_buf(sb));
+			pdfout("endstream\n");
+			obj_end();
+		}
+		sbuf_free(ffsb);
 		sbuf_free(sb);
 	}
 	/* the font descriptor */
@@ -129,7 +186,8 @@ static int psfont_writedesc(struct psfont *ps)
 	pdfout("  /Ascent 100\n");
 	pdfout("  /Descent 100\n");
 	if (str_obj >= 0)
-		pdfout("  /FontFile2 %d 0 R\n", str_obj);
+		pdfout("  /FontFile%s %d 0 R\n",
+			fonttype(ps->path) == 't' ? "2" : "", str_obj);
 	pdfout(">>\n");
 	obj_end();
 	return des_obj;
@@ -140,7 +198,6 @@ static void psfont_write(struct psfont *ps, int ix)
 {
 	int i;
 	int enc_obj;
-	char *ext = strrchr(ps->path, '.');
 	struct font *fn = dev_fontopen(ps->desc);
 	int map[256];
 	int gcnt = ix < ps->lastfn ? 256 : ps->lastgl;
@@ -164,8 +221,10 @@ static void psfont_write(struct psfont *ps, int ix)
 	obj_beg(ps->obj[ix]);
 	pdfout("<<\n");
 	pdfout("  /Type /Font\n");
-	pdfout("  /Subtype /%s\n",
-		ext && !strcmp(".ttf", ext) ? "TrueType" : "Type1");
+	if (fonttype(ps->path) == 't')
+		pdfout("  /Subtype /TrueType\n");
+	else
+		pdfout("  /Subtype /Type1\n");
 	pdfout("  /BaseFont /%s\n", ps->name);
 	pdfout("  /FirstChar 0\n");
 	pdfout("  /LastChar %d\n", gcnt - 1);
@@ -462,6 +521,7 @@ void drawl(int h, int v)
 	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
+/* draw circle/ellipse quadrant */
 static void drawquad(int ch, int cv)
 {
 	long b = 551915;
@@ -485,6 +545,7 @@ static void drawquad(int ch, int cv)
 	outrel(ch / 2, cv / 2);
 }
 
+/* draw a circle */
 void drawc(int c)
 {
 	drawquad(+c, +c);
@@ -494,6 +555,7 @@ void drawc(int c)
 	outrel(c, 0);
 }
 
+/* draw an ellipse */
 void drawe(int h, int v)
 {
 	drawquad(+h, +v);
@@ -503,11 +565,13 @@ void drawe(int h, int v)
 	outrel(h, 0);
 }
 
+/* draw an arc */
 void drawa(int h1, int v1, int h2, int v2)
 {
-	outrel(h1 + h2, v1 + v2);
+	drawl(h1 + h2, v1 + v2);
 }
 
+/* draw an spline */
 void draws(int h1, int v1, int h2, int v2)
 {
 	outrel(h1, v1);

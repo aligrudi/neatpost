@@ -117,3 +117,5 @@ int sbuf_len(struct sbuf *sbuf);
 void sbuf_str(struct sbuf *sbuf, char *s);
 void sbuf_printf(struct sbuf *sbuf, char *s, ...);
 void sbuf_chr(struct sbuf *sbuf, int c);
+void sbuf_mem(struct sbuf *sbuf, char *s, int len);
+void sbuf_cut(struct sbuf *sb, int len);
