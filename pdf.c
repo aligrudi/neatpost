@@ -21,31 +21,26 @@ static struct sbuf *pg;		/* current page contents */
 static int o_f, o_s, o_m;	/* font and size */
 static int o_h, o_v;		/* current user position */
 static int p_h, p_v;		/* current output position */
-static int o_pf, p_pf;		/* output and pdf fonts; indices into o_fs[] */
+static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
-static int *o_fs;		/* page fonts */
-static int o_fsn, o_fssz;	/* page fonts */
+static char o_iset[1024];	/* fonts accesssed in this page */
 
-#define PSFN_MK(fn, ix)		(((fn) << 16) | (ix))
-#define PSFN_FN(fi)		((fi) >> 16)
-#define PSFN_IX(fi)		((fi) & 0xffff)
-
-struct psfont {
+/* loaded PDF fonts */
+struct pfont {
 	char name[128];		/* font PostScript name */
 	char path[1024];	/* font path */
 	char desc[1024];	/* font descriptor path */
-	int *gmap;		/* the sub-font assigned to each glyph */
-	int *gpos;		/* the location of the glyph in its sub-font */
-	int gcnt;		/* glyph count */
-	int lastfn;		/* the last sub-font */
-	int lastgl;		/* the number of glyphs in the last subfont */
-	int obj[64];		/* sub-font object ids */
-	int objdes;		/* font descriptor object id */
+	int gbeg;		/* the first glyph */
+	int gend;		/* the last glyph */
+	int sub;		/* subfont number */
+	int obj;		/* the font object */
+	int des;		/* font descriptor */
+	int cid;		/* CID-indexed */
 };
 
-static struct psfont *psfonts;
-static int psfonts_n, psfonts_sz;
+static struct pfont *pfonts;
+static int pfonts_n, pfonts_sz;
 
 /* print formatted pdf output */
 static void pdfout(char *s, ...)
@@ -124,6 +119,44 @@ static int fonttype(char *path)
 	return '1';
 }
 
+/* write the object corresponding to the given font */
+static void pfont_write(struct pfont *ps)
+{
+	int i;
+	int enc_obj;
+	struct font *fn = dev_fontopen(ps->desc);
+	/* the encoding object */
+	enc_obj = obj_beg(0);
+	pdfout("<<\n");
+	pdfout("  /Type /Encoding\n");
+	pdfout("  /Differences [ %d", ps->gbeg % 256);
+	for (i = ps->gbeg; i <= ps->gend; i++)
+		pdfout(" /%s", font_glget(fn, i)->id);
+	pdfout(" ]\n");
+	pdfout(">>\n");
+	obj_end();
+	/* the font object */
+	obj_beg(ps->obj);
+	pdfout("<<\n");
+	pdfout("  /Type /Font\n");
+	if (fonttype(ps->path) == 't')
+		pdfout("  /Subtype /TrueType\n");
+	else
+		pdfout("  /Subtype /Type1\n");
+	pdfout("  /BaseFont /%s\n", ps->name);
+	pdfout("  /FirstChar %d\n", ps->gbeg % 256);
+	pdfout("  /LastChar %d\n", ps->gend % 256);
+	pdfout("  /Widths [");
+	for (i = ps->gbeg; i <= ps->gend; i++)
+		pdfout(" %d", (long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
+	pdfout(" ]\n");
+	pdfout("  /FontDescriptor %d 0 R\n", ps->des);
+	pdfout("  /Encoding %d 0 R\n", enc_obj);
+	pdfout(">>\n");
+	obj_end();
+	font_close(fn);
+}
+
 static void encodehex(struct sbuf *d, char *s, int n)
 {
 	static char hex[] = "0123456789ABCDEF";
@@ -137,14 +170,52 @@ static void encodehex(struct sbuf *d, char *s, int n)
 	sbuf_str(d, ">\n");
 }
 
-/* include font descriptor; returns object id */
-static int psfont_writedesc(struct psfont *ps)
+/* write the object corresponding to this CID font */
+static void pfont_writecid(struct pfont *ps)
+{
+	int cid_obj;
+	struct font *fn = dev_fontopen(ps->desc);
+	int gcnt = 0;
+	int i;
+	/* CIDFont */
+	cid_obj = obj_beg(0);
+	pdfout("<<\n");
+	pdfout("  /Type /Font\n");
+	pdfout("  /Subtype /CIDFontType2\n");
+	pdfout("  /BaseFont /%s\n", ps->name);
+	pdfout("  /CIDSystemInfo <</Ordering(Identity)/Registry(Adobe)/Supplement 0>>\n");
+	pdfout("  /FontDescriptor %d 0 R\n", ps->des);
+	pdfout("  /DW 1000\n");
+	while (font_glget(fn, gcnt))
+		gcnt++;
+	pdfout("  /W [ %d [", ps->gbeg);
+	for (i = ps->gbeg; i <= ps->gend; i++)
+		pdfout(" %d", (long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
+	pdfout(" ] ]\n");
+	pdfout(">>\n");
+	obj_end();
+	/* the font object */
+	obj_beg(ps->obj);
+	pdfout("<<\n");
+	pdfout("  /Type /Font\n");
+	pdfout("  /Subtype /Type0\n");
+	pdfout("  /BaseFont /%s\n", ps->name);
+	pdfout("  /Encoding /Identity-H\n");
+	pdfout("  /DescendantFonts [%d 0 R]\n", cid_obj);
+	pdfout(">>\n");
+	obj_end();
+	font_close(fn);
+}
+
+/* write font descriptor; returns its object ID */
+static int writedesc(struct font *fn)
 {
 	int str_obj = -1;
 	int des_obj;
 	char buf[1 << 10];
-	if (fonttype(ps->path) == '1' || fonttype(ps->path) == 't') {
-		int fd = open(ps->path, O_RDONLY);
+	int fntype = fonttype(font_path(fn));
+	if (fntype == '1' || fntype == 't') {
+		int fd = open(font_path(fn), O_RDONLY);
 		struct sbuf *ffsb = sbuf_make();
 		struct sbuf *sb = sbuf_make();
 		int l1 = 0, l2 = 0, l3 = 0;
@@ -155,7 +226,7 @@ static int psfont_writedesc(struct psfont *ps)
 		close(fd);
 		l1 = sbuf_len(ffsb);
 		/* initialize Type 1 lengths */
-		if (fonttype(ps->path) == '1') {
+		if (fntype == '1') {
 			if (type1lengths(sbuf_buf(ffsb), sbuf_len(ffsb),
 					&l1, &l2, &l3))
 				l1 = 0;
@@ -173,9 +244,9 @@ static int psfont_writedesc(struct psfont *ps)
 			pdfout("  /Filter /ASCIIHexDecode\n");
 			pdfout("  /Length %d\n", sbuf_len(sb));
 			pdfout("  /Length1 %d\n", l1);
-			if (fonttype(ps->path) == '1')
+			if (fntype == '1')
 				pdfout("  /Length2 %d\n", l2);
-			if (fonttype(ps->path) == '1')
+			if (fntype == '1')
 				pdfout("  /Length3 %d\n", l3);
 			pdfout(">>\n");
 			pdfout("stream\n");
@@ -190,8 +261,8 @@ static int psfont_writedesc(struct psfont *ps)
 	des_obj = obj_beg(0);
 	pdfout("<<\n");
 	pdfout("  /Type /FontDescriptor\n");
-	pdfout("  /FontName /%s\n", ps->name);
-	pdfout("  /Flags 4\n");
+	pdfout("  /FontName /%s\n", font_name(fn));
+	pdfout("  /Flags 32\n");
 	pdfout("  /FontBBox [-1000 -1000 1000 1000]\n");
 	pdfout("  /MissingWidth 1000\n");
 	pdfout("  /StemV 100\n");
@@ -201,121 +272,56 @@ static int psfont_writedesc(struct psfont *ps)
 	pdfout("  /Descent 100\n");
 	if (str_obj >= 0)
 		pdfout("  /FontFile%s %d 0 R\n",
-			fonttype(ps->path) == 't' ? "2" : "", str_obj);
+			fntype == 't' ? "2" : "", str_obj);
 	pdfout(">>\n");
 	obj_end();
 	return des_obj;
 }
 
-/* write the object corresponding to font font_id[f] */
-static void psfont_write(struct psfont *ps, int ix)
-{
-	int i;
-	int enc_obj;
-	struct font *fn = dev_fontopen(ps->desc);
-	int map[256];
-	int gcnt = ix < ps->lastfn ? 256 : ps->lastgl;
-	/* finding out the mapping */
-	for (i = 0; i < 256; i++)
-		map[i] = -1;
-	for (i = 0; i < ps->gcnt; i++)
-		if (ps->gmap[i] == ix)
-			map[ps->gpos[i]] = i;
-	/* the encoding object */
-	enc_obj = obj_beg(0);
-	pdfout("<<\n");
-	pdfout("  /Type /Encoding\n");
-	pdfout("  /Differences [ 0");
-	for (i = 0; i < gcnt; i++)
-		pdfout(" /%s", map[i] >= 0 ? font_glget(fn, map[i])->id : ".notdef");
-	pdfout(" ]\n");
-	pdfout(">>\n");
-	obj_end();
-	/* the font object */
-	obj_beg(ps->obj[ix]);
-	pdfout("<<\n");
-	pdfout("  /Type /Font\n");
-	if (fonttype(ps->path) == 't')
-		pdfout("  /Subtype /TrueType\n");
-	else
-		pdfout("  /Subtype /Type1\n");
-	pdfout("  /BaseFont /%s\n", ps->name);
-	pdfout("  /FirstChar 0\n");
-	pdfout("  /LastChar %d\n", gcnt - 1);
-	pdfout("  /Widths [");
-	for (i = 0; i < gcnt; i++)
-		pdfout(" %d", (long) (map[i] >= 0 ? font_glget(fn, map[i])->wid : 0)
-				* 100 * 72 / dev_res);
-	pdfout(" ]\n");
-	pdfout("  /FontDescriptor %d 0 R\n", ps->objdes);
-	pdfout("  /Encoding %d 0 R\n", enc_obj);
-	pdfout(">>\n");
-	obj_end();
-	font_close(fn);
-}
-
-static int psfont_find(struct glyph *g)
+static int pfont_find(struct glyph *g)
 {
 	struct font *fn = g->font;
 	char *name = font_name(fn);
-	struct psfont *ps = NULL;
-	int gidx;
+	struct pfont *ps = NULL;
+	int fntype = fonttype(font_path(fn));
+	int sub = fntype == '1' ? font_glnum(fn, g) / 256 : 0;
 	int i;
-	for (i = 0; i < psfonts_n; i++)
-		if (!strcmp(name, psfonts[i].name))
+	for (i = 0; i < pfonts_n; i++)
+		if (!strcmp(name, pfonts[i].name) && pfonts[i].sub == sub)
+			return i;
+	if (pfonts_n == pfonts_sz) {
+		pfonts_sz += 16;
+		pfonts = mextend(pfonts, pfonts_n,
+				pfonts_sz, sizeof(pfonts[0]));
+	}
+	ps = &pfonts[pfonts_n];
+	snprintf(ps->name, sizeof(ps->name), "%s", name);
+	snprintf(ps->path, sizeof(ps->path), "%s", font_path(fn));
+	snprintf(ps->desc, sizeof(ps->desc), "%s", font_desc(fn));
+	ps->cid = fntype == 't';
+	ps->obj = obj_map();
+	ps->sub = sub;
+	ps->gbeg = 1 << 20;
+	for (i = 0; i < pfonts_n; i++)
+		if (!strcmp(pfonts[i].name, ps->name))
 			break;
-	if (i == psfonts_n) {
-		if (psfonts_n == psfonts_sz) {
-			psfonts_sz += 16;
-			psfonts = mextend(psfonts, psfonts_n,
-					psfonts_sz, sizeof(psfonts[0]));
-		}
-		psfonts_n++;
-		ps = &psfonts[i];
-		snprintf(ps->name, sizeof(ps->name), "%s", name);
-		snprintf(ps->path, sizeof(ps->path), "%s", font_path(fn));
-		snprintf(ps->desc, sizeof(ps->desc), "%s", font_desc(fn));
-		while (font_glget(fn, ps->gcnt))
-			ps->gcnt++;
-		ps->gmap = calloc(ps->gcnt, sizeof(ps->gmap));
-		ps->gpos = calloc(ps->gcnt, sizeof(ps->gpos));
-		ps->lastfn = 0;
-		ps->lastgl = 256;
-	}
-	ps = &psfonts[i];
-	gidx = font_glnum(fn, g);
-	if (!ps->gmap[gidx]) {
-		if (ps->lastgl == 256) {
-			ps->lastgl = 0;
-			ps->lastfn++;
-			ps->obj[ps->lastfn] = obj_map();
-		}
-		ps->gmap[gidx] = ps->lastfn;
-		ps->gpos[gidx] = ps->lastgl++;
-	}
-	return PSFN_MK(i, ps->gmap[gidx]);
+	if (i < pfonts_n)
+		ps->des = pfonts[i].des;
+	else
+		ps->des = writedesc(fn);
+	return pfonts_n++;
 }
 
-static int psfont_gpos(struct glyph *g)
+static void pfont_done(void)
 {
-	int fn = psfont_find(g);
-	return psfonts[PSFN_FN(fn)].gpos[font_glnum(g->font, g)];
-}
-
-static void psfont_done(void)
-{
-	int i, j;
-	for (i = 0; i < psfonts_n; i++) {
-		struct psfont *ps = &psfonts[i];
-		ps->objdes = psfont_writedesc(ps);
-		for (j = 1; j <= ps->lastfn; j++)
-			psfont_write(ps, j);
+	int i;
+	for (i = 0; i < pfonts_n; i++) {
+		if (pfonts[i].cid)
+			pfont_writecid(&pfonts[i]);
+		else
+			pfont_write(&pfonts[i]);
 	}
-	for (i = 0; i < psfonts_n; i++) {
-		free(psfonts[i].gmap);
-		free(psfonts[i].gpos);
-	}
-	free(psfonts);
+	free(pfonts);
 }
 
 static void o_flush(void)
@@ -327,17 +333,9 @@ static void o_flush(void)
 
 static int o_loadfont(struct glyph *g)
 {
-	int fn = psfont_find(g);
-	int i;
-	for (i = 0; i < o_fsn; i++)
-		if (o_fs[i] == fn)
-			return i;
-	if (o_fsn == o_fssz) {
-		o_fssz += 128;
-		o_fs = mextend(o_fs, o_fsn, o_fssz, sizeof(o_fs[0]));
-	}
-	o_fs[o_fsn++] = fn;
-	return o_fsn - 1;
+	int fn = pfont_find(g);
+	o_iset[fn] = 1;
+	return fn;
 }
 
 /* like pdfpos() but assume that uh and uv are multiplied by 100 */
@@ -381,6 +379,7 @@ static char *pdfcolor(int m)
 
 static void o_queue(struct glyph *g)
 {
+	int gid;
 	if (o_v != p_v) {
 		o_flush();
 		sbuf_printf(pg, "1 0 0 1 %s Tm\n", pdfpos(o_h, o_v));
@@ -392,7 +391,18 @@ static void o_queue(struct glyph *g)
 	o_queued = 1;
 	if (o_h != p_h)
 		sbuf_printf(pg, "> %s <", pdfunit(p_h - o_h, o_s));
-	sbuf_printf(pg, "%02x", psfont_gpos(g));
+	/* printing glyph identifier */
+	gid = font_glnum(g->font, g);
+	if (pfonts[o_i].cid)
+		sbuf_printf(pg, "%04x", gid);
+	else
+		sbuf_printf(pg, "%02x", gid % 256);
+	/* updating gbeg and gend */
+	if (gid < pfonts[o_i].gbeg)
+		pfonts[o_i].gbeg = gid;
+	if (gid > pfonts[o_i].gend)
+		pfonts[o_i].gend = gid;
+	/* advancing */
 	p_h = o_h + font_wid(g->font, o_s, g->wid);
 }
 
@@ -403,12 +413,14 @@ static void out_fontup(void)
 		sbuf_printf(pg, "%s rg\n", pdfcolor(o_m));
 		p_m = o_m;
 	}
-	if (o_pf >= 0 && (o_pf != p_pf || o_s != p_s)) {
-		int fn = PSFN_FN(o_fs[o_pf]);
-		int ix = PSFN_IX(o_fs[o_pf]);
+	if (o_i >= 0 && (o_i != p_i || o_s != p_s)) {
+		struct pfont *ps = &pfonts[o_i];
 		o_flush();
-		sbuf_printf(pg, "/%s.%d %d Tf\n", psfonts[fn].name, ix, o_s);
-		p_pf = o_pf;
+		if (ps->cid)
+			sbuf_printf(pg, "/%s %d Tf\n", ps->name, o_s);
+		else
+			sbuf_printf(pg, "/%s.%d %d Tf\n", ps->name, ps->sub, o_s);
+		p_i = o_i;
 		p_s = o_s;
 	}
 }
@@ -423,7 +435,7 @@ void outc(char *c)
 		outrel(*c == ' ' && fn ? font_swid(fn, o_s) : 1, 0);
 		return;
 	}
-	o_pf = o_loadfont(g);
+	o_i = o_loadfont(g);
 	out_fontup();
 	o_queue(g);
 }
@@ -477,13 +489,13 @@ void outpage(void)
 {
 	o_v = 0;
 	o_h = 0;
-	p_pf = 0;
+	p_i = 0;
 	p_v = 0;
 	p_h = 0;
 	p_s = 0;
 	p_f = 0;
 	p_m = 0;
-	o_pf = -1;
+	o_i = -1;
 }
 
 void outmnt(int f)
@@ -629,7 +641,7 @@ void ps_trailer(int pages)
 	pdfout(">>\n");
 	obj_end();
 	/* fonts */
-	psfont_done();
+	pfont_done();
 	/* info object */
 	info_id = obj_beg(0);
 	pdfout("<<\n");
@@ -692,11 +704,14 @@ void ps_pageend(int n)
 	pdfout("  /Parent %d 0 R\n", pdf_pages);
 	pdfout("  /Resources <<\n");
 	pdfout("    /Font <<");
-	for (i = 0; i < o_fsn; i++) {
-		int fn = PSFN_FN(o_fs[i]);
-		int ix = PSFN_IX(o_fs[i]);
-		pdfout(" /%s.%d %d 0 R",
-			psfonts[fn].name, ix, psfonts[fn].obj[ix]);
+	for (i = 0; i < pfonts_n; i++) {
+		if (o_iset[i]) {
+			struct pfont *ps = &pfonts[i];
+			if (ps->cid)
+				pdfout(" /%s %d 0 R", ps->name, ps->obj);
+			else
+				pdfout(" /%s.%d %d 0 R", ps->name, ps->sub, ps->obj);
+		}
 	}
 	pdfout(" >>\n");
 	pdfout("  >>\n");
@@ -704,8 +719,5 @@ void ps_pageend(int n)
 	pdfout(">>\n");
 	obj_end();
 	sbuf_free(pg);
-	free(o_fs);
-	o_fs = NULL;
-	o_fsn = 0;
-	o_fssz = 0;
+	memset(o_iset, 0, pfonts_n * sizeof(o_iset[0]));
 }
