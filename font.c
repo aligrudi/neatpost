@@ -75,15 +75,12 @@ static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 	if (strcmp("\"", tok)) {
 		if (fscanf(fin, "%d %s", &type, id) != 2)
 			return 1;
-		*gid = dict_get(fn->gl_dict, id);
-		if (*gid < 0) {
-			*gid = font_glyphput(fn, id, name, type);
-			g = &fn->gl[*gid];
-			sscanf(tok, "%d", &g->wid);
-			tilleol(fin, tok);
-			if (sscanf(tok, "%d", &g->pos) != 1)
-				g->pos = 0;
-		}
+		*gid = font_glyphput(fn, id, name, type);
+		g = &fn->gl[*gid];
+		sscanf(tok, "%d", &g->wid);
+		tilleol(fin, tok);
+		if (sscanf(tok, "%d", &g->pos) != 1)
+			g->pos = 0;
 		dict_put(fn->ch_dict, name, *gid);
 		(*n)++;
 	} else {
