@@ -330,6 +330,10 @@ void outeps(char *spec)
 	outf("EPSFEND\n");
 }
 
+void outpdf(char *spec)
+{
+}
+
 void outlink(char *spec)
 {
 	char lnk[1 << 12];

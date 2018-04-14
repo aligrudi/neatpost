@@ -1,3 +1,4 @@
+/* PDF post processor functions */
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -25,6 +26,8 @@ static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
 static char o_iset[1024];	/* fonts accesssed in this page */
+static int *xobj;		/* page xobject object ids  */
+static int xobj_sz, xobj_n;	/* number of xobjects */
 
 /* loaded PDF fonts */
 struct pfont {
@@ -56,6 +59,13 @@ static void pdfouts(char *s)
 {
 	fputs(s, stdout);
 	pdf_pos += strlen(s);
+}
+
+/* print pdf output */
+static void pdfmem(char *s, int len)
+{
+	fwrite(s, len, 1, stdout);
+	pdf_pos += len;
 }
 
 /* allocate an object number */
@@ -164,7 +174,7 @@ static void encodehex(struct sbuf *d, char *s, int n)
 	for (i = 0; i < n; i++) {
 		sbuf_chr(d, hex[((unsigned char) s[i]) >> 4]);
 		sbuf_chr(d, hex[((unsigned char) s[i]) & 0x0f]);
-		if (i % 80 == 79 && i + 1 < n)
+		if (i % 40 == 39 && i + 1 < n)
 			sbuf_chr(d, '\n');
 	}
 	sbuf_str(d, ">\n");
@@ -481,6 +491,130 @@ void outeps(char *eps)
 {
 }
 
+static char *strcut(char *dst, char *src)
+{
+	while (*src == ' ' || *src == '\n')
+		src++;
+	if (src[0] == '"') {
+		src++;
+		while (*src && (src[0] != '"' || src[1] == '"')) {
+			if (*src == '"')
+				src++;
+			*dst++ = *src++;
+		}
+		if (*src == '"')
+			src++;
+	} else {
+		while (*src && *src != ' ' && *src != '\n')
+			*dst++ = *src++;
+	}
+	*dst = '\0';
+	return src;
+}
+
+/* return a copy of a pdf object; returns a static buffer */
+static char *pdf_copy(char *pdf, int len, int pos)
+{
+	static char buf[256];
+	int datlen;
+	pos += pdf_ws(pdf, len, pos);
+	datlen = pdf_len(pdf, len, pos);
+	if (datlen > sizeof(buf) - 1)
+		datlen = sizeof(buf) - 1;
+	memcpy(buf, pdf + pos, datlen);
+	buf[datlen] = '\0';
+	return buf;
+}
+
+/* return stream length */
+static int pdf_slen(char *pdf, int len, int pos, int slen)
+{
+	int old = pos;
+	pos += pdf_ws(pdf, len, pos);
+	pos += strlen("stream");
+	if (pdf[pos] == '\r')
+		pos++;
+	pos += 1 + slen;
+	if (pdf[pos] == '\n')
+		pos++;
+	pos += strlen("endstream");
+	return pos - old;
+}
+
+static int pdfext(char *pdf, int len)
+{
+	char *cont_fields[] = {"/Filter", "/DecodeParms"};
+	int trailer = pdf_trailer(pdf, len);
+	int root, cont, pages, page1, stream;
+	int kids_val, page1_val, val;
+	int xobj_id, length;
+	int bbox;
+	int i;
+	root = pdf_dval_obj(pdf, len, trailer, "/Root");
+	pages = pdf_dval_obj(pdf, len, root, "/Pages");
+	kids_val = pdf_dval_val(pdf, len, pages, "/Kids");
+	page1_val = pdf_lval(pdf, len, kids_val, 0);
+	page1 = pdf_ref(pdf, len, page1_val);
+	cont = pdf_dval_obj(pdf, len, page1, "/Contents");
+	val = pdf_dval_val(pdf, len, cont, "/Length");
+	length = atoi(pdf + val);
+	bbox = pdf_dval_val(pdf, len, page1, "/MediaBox");
+	if (bbox < 0)
+		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
+	xobj_id = obj_beg(0);
+	pdfout("<<\n");
+	pdfout("  /Type /XObject\n");
+	pdfout("  /Subtype /Form\n");
+	pdfout("  /FormType 1\n");
+	if (bbox >= 0)
+		pdfout("  /BBox %s\n", pdf_copy(pdf, len, bbox));
+	pdfout("  /Matrix [1 0 0 1 %s]\n", pdfpos(o_h, o_v));
+	pdfout("  /Resources << /ProcSet [/PDF] >>\n");
+	pdfout("  /Length %d\n", length);
+	for (i = 0; i < LEN(cont_fields); i++)
+		if ((val = pdf_dval_val(pdf, len, cont, cont_fields[i])) >= 0)
+			pdfout("  %s %s\n", cont_fields[i],
+				pdf_copy(pdf, len, val));
+	pdfout(">>\n");
+	stream = cont + pdf_len(pdf, len, cont);
+	stream += pdf_ws(pdf, len, stream);
+	pdfmem(pdf + stream, pdf_slen(pdf, len, stream, length));
+	pdfout("\n");
+	obj_end();
+	if (xobj_n == xobj_sz) {
+		xobj_sz += 8;
+		xobj = mextend(xobj, xobj_n, xobj_sz, sizeof(xobj[0]));
+	}
+	xobj[xobj_n++] = xobj_id;
+	return xobj_n - 1;
+}
+
+void outpdf(char *spec)
+{
+	char pdf[1 << 12];
+	char buf[1 << 12];
+	struct sbuf *sb;
+	int xobj_id;
+	int fd, nr;
+	spec = strcut(pdf, spec);
+	if (!pdf[0])
+		return;
+	/* reading the pdf file */
+	sb = sbuf_make();
+	fd = open(pdf, O_RDONLY);
+	while ((nr = read(fd, buf, sizeof(buf))) > 0)
+		sbuf_mem(sb, buf, nr);
+	close(fd);
+	/* the XObject */
+	xobj_id = pdfext(sbuf_buf(sb), sbuf_len(sb));
+	sbuf_free(sb);
+	o_flush();
+	out_fontup();
+	sbuf_printf(pg, "ET /FO%d Do BT\n", xobj_id);
+	p_h = -1;
+	p_v = -1;
+}
+
 void outlink(char *spec)
 {
 }
@@ -687,10 +821,10 @@ void ps_pageend(int n)
 	/* page contents */
 	cont_id = obj_beg(0);
 	pdfout("<<\n");
-	pdfout("  /Length %d\n", sbuf_len(pg));
+	pdfout("  /Length %d\n", sbuf_len(pg) - 1);
 	pdfout(">>\n");
 	pdfout("stream\n");
-	pdfouts(sbuf_buf(pg));
+	pdfmem(sbuf_buf(pg), sbuf_len(pg));
 	pdfout("endstream\n");
 	obj_end();
 	/* the page object */
@@ -714,10 +848,20 @@ void ps_pageend(int n)
 		}
 	}
 	pdfout(" >>\n");
+	if (xobj_n) {				/* XObjects */
+		pdfout("    /XObject <<");
+		for (i = 0; i < xobj_n; i++)
+			pdfout(" /FO%d %d 0 R", i, xobj[i]);
+		pdfout(" >>\n");
+	}
 	pdfout("  >>\n");
 	pdfout("  /Contents %d 0 R\n", cont_id);
 	pdfout(">>\n");
 	obj_end();
 	sbuf_free(pg);
 	memset(o_iset, 0, pfonts_n * sizeof(o_iset[0]));
+	free(xobj);
+	xobj = NULL;
+	xobj_n = 0;
+	xobj_sz = 0;
 }

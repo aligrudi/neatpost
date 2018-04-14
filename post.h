@@ -57,7 +57,8 @@ void outfont(int f);
 void outsize(int s);
 void outcolor(int c);
 void outrotate(int deg);
-void outeps(char *eps);
+void outeps(char *spec);
+void outpdf(char *spec);
 void outlink(char *spec);
 void outpage(void);
 void outmnt(int f);
@@ -119,3 +120,17 @@ void sbuf_printf(struct sbuf *sbuf, char *s, ...);
 void sbuf_chr(struct sbuf *sbuf, int c);
 void sbuf_mem(struct sbuf *sbuf, char *s, int len);
 void sbuf_cut(struct sbuf *sb, int len);
+
+/* reading PDF files */
+int pdf_ws(char *pdf, int len, int pos);
+int pdf_len(char *pdf, int len, int pos);
+int pdf_type(char *pdf, int len, int pos);
+int pdf_dval(char *pdf, int len, int pos, char *key);
+int pdf_dkey(char *pdf, int len, int pos, int key);
+int pdf_lval(char *pdf, int len, int pos, int idx);
+int pdf_trailer(char *pdf, int len);
+int pdf_obj(char *pdf, int len, int pos, int *obj, int *rev);
+int pdf_find(char *pdf, int len, int obj, int rev);
+int pdf_ref(char *pdf, int len, int pos);
+int pdf_dval_val(char *pdf, int len, int pos, char *key);
+int pdf_dval_obj(char *pdf, int len, int pos, char *key);

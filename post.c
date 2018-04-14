@@ -260,6 +260,8 @@ static void postps(void)
 		outrotate(atoi(arg));
 	if (!strcmp("eps", cmd))
 		outeps(arg);
+	if (!strcmp("pdf", cmd))
+		outpdf(arg);
 	if (!strcmp("link", cmd))
 		outlink(arg);
 	if (!strcmp("BeginObject", cmd))
