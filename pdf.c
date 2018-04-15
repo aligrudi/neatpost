@@ -55,13 +55,6 @@ static void pdfout(char *s, ...)
 }
 
 /* print pdf output */
-static void pdfouts(char *s)
-{
-	fputs(s, stdout);
-	pdf_pos += strlen(s);
-}
-
-/* print pdf output */
 static void pdfmem(char *s, int len)
 {
 	fwrite(s, len, 1, stdout);
@@ -260,7 +253,7 @@ static int writedesc(struct font *fn)
 				pdfout("  /Length3 %d\n", l3);
 			pdfout(">>\n");
 			pdfout("stream\n");
-			pdfouts(sbuf_buf(sb));
+			pdfmem(sbuf_buf(sb), sbuf_len(sb));
 			pdfout("endstream\n");
 			obj_end();
 		}
@@ -622,13 +615,26 @@ static void pdf_rescopy(char *pdf, int len, int pos, struct sbuf *sb)
 	sbuf_printf(sb, "  >>\n");
 }
 
-static int pdfext(char *pdf, int len)
+static int pdfbbox(char *pdf, int len, int pos, int dim[4])
+{
+	int val;
+	int i;
+	for (i = 0; i < 4; i++) {
+		if ((val = pdf_lval(pdf, len, pos, i)) < 0)
+			return -1;
+		dim[i] = atoi(pdf + val);
+	}
+	return 0;
+}
+
+static int pdfext(char *pdf, int len, int hwid, int vwid)
 {
 	char *cont_fields[] = {"/Filter", "/DecodeParms"};
 	int trailer, root, cont, pages, page1, res;
-	int kids_val, page1_val, val;
+	int kids_val, page1_val, val, bbox;
 	int xobj_id, length;
-	int bbox;
+	int dim[4];
+	int hzoom = 100, vzoom = 100;
 	struct sbuf *sb;
 	int i;
 	if ((trailer = pdf_trailer(pdf, len)) < 0)
@@ -652,6 +658,16 @@ static int pdfext(char *pdf, int len)
 	bbox = pdf_dval_val(pdf, len, page1, "/MediaBox");
 	if (bbox < 0)
 		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
+	if (bbox >= 0 && !pdfbbox(pdf, len, bbox, dim)) {
+		if (hwid > 0)
+			hzoom = hwid / (dim[2] - dim[0]);
+		if (vwid > 0)
+			vzoom = vwid / (dim[3] - dim[1]);
+		if (vwid <= 0)
+			vzoom = hzoom;
+		if (hwid <= 0)
+			hzoom = vzoom;
+	}
 	sb = sbuf_make();
 	sbuf_printf(sb, "<<\n");
 	sbuf_printf(sb, "  /Type /XObject\n");
@@ -659,7 +675,9 @@ static int pdfext(char *pdf, int len)
 	sbuf_printf(sb, "  /FormType 1\n");
 	if (bbox >= 0)
 		sbuf_printf(sb, "  /BBox %s\n", pdf_copy(pdf, len, bbox));
-	sbuf_printf(sb, "  /Matrix [1 0 0 1 %s]\n", pdfpos(o_h, o_v));
+	sbuf_printf(sb, "  /Matrix [%d.%02d 0 0 %d.%02d %s]\n",
+		hzoom / 100, hzoom % 100, vzoom / 100, vzoom % 100,
+		pdfpos(o_h, o_v));
 	if (res >= 0)
 		pdf_rescopy(pdf, len, res, sb);
 	sbuf_printf(sb, "  /Length %d\n", length);
@@ -686,11 +704,18 @@ void outpdf(char *spec)
 	char pdf[1 << 12];
 	char buf[1 << 12];
 	struct sbuf *sb;
+	int hwid, vwid, nspec;
 	int xobj_id;
 	int fd, nr;
 	spec = strcut(pdf, spec);
 	if (!pdf[0])
 		return;
+	/* requested image dimensions */
+	nspec = sscanf(spec, "%d %d", &hwid, &vwid);
+	if (nspec < 1)
+		hwid = 0;
+	if (nspec < 2)
+		vwid = 0;
 	/* reading the pdf file */
 	sb = sbuf_make();
 	fd = open(pdf, O_RDONLY);
@@ -698,7 +723,7 @@ void outpdf(char *spec)
 		sbuf_mem(sb, buf, nr);
 	close(fd);
 	/* the XObject */
-	xobj_id = pdfext(sbuf_buf(sb), sbuf_len(sb));
+	xobj_id = pdfext(sbuf_buf(sb), sbuf_len(sb), hwid, vwid);
 	sbuf_free(sb);
 	o_flush();
 	out_fontup();
