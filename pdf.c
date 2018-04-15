@@ -862,7 +862,7 @@ void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
 	pdf_root = obj_map();
 	pdf_pages = obj_map();
 	pdf_title = title;
-	pdfout("%%PDF-1.6\n");
+	pdfout("%%PDF-1.6\n\n");
 	pdf_width = (pagewidth * 72 + 127) / 254;
 	pdf_height = (pageheight * 72 + 127) / 254;
 }
