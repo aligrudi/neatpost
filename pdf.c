@@ -1,4 +1,4 @@
-/* PDF post processor functions */
+/* PDF post-processor functions */
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -512,10 +512,10 @@ static char *strcut(char *dst, char *src)
 	return src;
 }
 
-/* return a copy of a pdf object; returns a static buffer */
+/* return a copy of a PDF object; returns a static buffer */
 static char *pdf_copy(char *pdf, int len, int pos)
 {
-	static char buf[256];
+	static char buf[1 << 12];
 	int datlen;
 	pos += pdf_ws(pdf, len, pos);
 	datlen = pdf_len(pdf, len, pos);
@@ -526,61 +526,153 @@ static char *pdf_copy(char *pdf, int len, int pos)
 	return buf;
 }
 
-/* return stream length */
-static int pdf_slen(char *pdf, int len, int pos, int slen)
+static void pdf_dictcopy(char *pdf, int len, int pos, struct sbuf *sb);
+
+/* write stream to sb */
+static int pdf_strcopy(char *pdf, int len, int pos, struct sbuf *sb)
 {
-	int old = pos;
+	int slen, val;
+	int beg;
+	if ((val = pdf_dval_val(pdf, len, pos, "/Length")) < 0)
+		return -1;
+	slen = atoi(pdf + val);
+	pos = pos + pdf_len(pdf, len, pos);
 	pos += pdf_ws(pdf, len, pos);
+	if (pos + slen + 15 > len)
+		return -1;
+	beg = pos;
 	pos += strlen("stream");
 	if (pdf[pos] == '\r')
 		pos++;
 	pos += 1 + slen;
+	if (pdf[pos] == '\r' || pdf[pos] == ' ')
+		pos++;
 	if (pdf[pos] == '\n')
 		pos++;
-	pos += strlen("endstream");
-	return pos - old;
+	pos += strlen("endstream") + 1;
+	sbuf_mem(sb, pdf + beg, pos - beg);
+	return 0;
+}
+
+/* copy a PDF object and return its new identifier */
+static int pdf_objcopy(char *pdf, int len, int pos)
+{
+	int id;
+	if ((pos = pdf_ref(pdf, len, pos)) < 0)
+		return -1;
+	if (pdf_type(pdf, len, pos) == 'd') {
+		struct sbuf *sb = sbuf_make();
+		pdf_dictcopy(pdf, len, pos, sb);
+		sbuf_chr(sb, '\n');
+		if (pdf_dval(pdf, len, pos, "/Length") >= 0)
+			pdf_strcopy(pdf, len, pos, sb);
+		id = obj_beg(0);
+		pdfmem(sbuf_buf(sb), sbuf_len(sb));
+		obj_end();
+		sbuf_free(sb);
+	} else {
+		id = obj_beg(0);
+		pdfmem(pdf + pos, pdf_len(pdf, len, pos));
+		pdfout("\n");
+		obj_end();
+	}
+	return id;
+}
+
+/* copy a PDF dictionary recursively */
+static void pdf_dictcopy(char *pdf, int len, int pos, struct sbuf *sb)
+{
+	int i;
+	int key, val, id;
+	sbuf_printf(sb, "<<");
+	for (i = 0; ; i++) {
+		if ((key = pdf_dkey(pdf, len, pos, i)) < 0)
+			break;
+		sbuf_printf(sb, " %s", pdf_copy(pdf, len, key));
+		val = pdf_dval(pdf, len, pos, pdf_copy(pdf, len, key));
+		if (pdf_type(pdf, len, val) == 'r') {
+			if ((id = pdf_objcopy(pdf, len, val)) >= 0)
+				sbuf_printf(sb, " %d 0 R", id);
+		} else {
+			sbuf_printf(sb, " %s", pdf_copy(pdf, len, val));
+		}
+	}
+	sbuf_printf(sb, " >>");
+}
+
+/* copy resources dictionary */
+static void pdf_rescopy(char *pdf, int len, int pos, struct sbuf *sb)
+{
+	char *res_fields[] = {"/ProcSet", "/ExtGState", "/ColorSpace",
+		"/Pattern", "/Shading", "/Properties", "/Font", "/XObject"};
+	int res, i;
+	sbuf_printf(sb, "  /Resources <<\n");
+	for (i = 0; i < LEN(res_fields); i++) {
+		if ((res = pdf_dval_val(pdf, len, pos, res_fields[i])) >= 0) {
+			if (pdf_type(pdf, len, res) == 'd') {
+				sbuf_printf(sb, "    %s ", res_fields[i]);
+				pdf_dictcopy(pdf, len, res, sb);
+				sbuf_printf(sb, "\n");
+			} else {
+				sbuf_printf(sb, "    %s %s\n", res_fields[i],
+					pdf_copy(pdf, len, res));
+			}
+		}
+	}
+	sbuf_printf(sb, "  >>\n");
 }
 
 static int pdfext(char *pdf, int len)
 {
 	char *cont_fields[] = {"/Filter", "/DecodeParms"};
-	int trailer = pdf_trailer(pdf, len);
-	int root, cont, pages, page1, stream;
+	int trailer, root, cont, pages, page1, res;
 	int kids_val, page1_val, val;
 	int xobj_id, length;
 	int bbox;
+	struct sbuf *sb;
 	int i;
-	root = pdf_dval_obj(pdf, len, trailer, "/Root");
-	pages = pdf_dval_obj(pdf, len, root, "/Pages");
-	kids_val = pdf_dval_val(pdf, len, pages, "/Kids");
-	page1_val = pdf_lval(pdf, len, kids_val, 0);
-	page1 = pdf_ref(pdf, len, page1_val);
-	cont = pdf_dval_obj(pdf, len, page1, "/Contents");
-	val = pdf_dval_val(pdf, len, cont, "/Length");
+	if ((trailer = pdf_trailer(pdf, len)) < 0)
+		return -1;
+	if ((root = pdf_dval_obj(pdf, len, trailer, "/Root")) < 0)
+		return -1;
+	if ((pages = pdf_dval_obj(pdf, len, root, "/Pages")) < 0)
+		return -1;
+	if ((kids_val = pdf_dval_val(pdf, len, pages, "/Kids")) < 0)
+		return -1;
+	if ((page1_val = pdf_lval(pdf, len, kids_val, 0)) < 0)
+		return -1;
+	if ((page1 = pdf_ref(pdf, len, page1_val)) < 0)
+		return -1;
+	if ((cont = pdf_dval_obj(pdf, len, page1, "/Contents")) < 0)
+		return -1;
+	if ((val = pdf_dval_val(pdf, len, cont, "/Length")) < 0)
+		return -1;
+	res = pdf_dval_val(pdf, len, page1, "/Resources");
 	length = atoi(pdf + val);
 	bbox = pdf_dval_val(pdf, len, page1, "/MediaBox");
 	if (bbox < 0)
 		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
-	xobj_id = obj_beg(0);
-	pdfout("<<\n");
-	pdfout("  /Type /XObject\n");
-	pdfout("  /Subtype /Form\n");
-	pdfout("  /FormType 1\n");
+	sb = sbuf_make();
+	sbuf_printf(sb, "<<\n");
+	sbuf_printf(sb, "  /Type /XObject\n");
+	sbuf_printf(sb, "  /Subtype /Form\n");
+	sbuf_printf(sb, "  /FormType 1\n");
 	if (bbox >= 0)
-		pdfout("  /BBox %s\n", pdf_copy(pdf, len, bbox));
-	pdfout("  /Matrix [1 0 0 1 %s]\n", pdfpos(o_h, o_v));
-	pdfout("  /Resources << /ProcSet [/PDF] >>\n");
-	pdfout("  /Length %d\n", length);
+		sbuf_printf(sb, "  /BBox %s\n", pdf_copy(pdf, len, bbox));
+	sbuf_printf(sb, "  /Matrix [1 0 0 1 %s]\n", pdfpos(o_h, o_v));
+	if (res >= 0)
+		pdf_rescopy(pdf, len, res, sb);
+	sbuf_printf(sb, "  /Length %d\n", length);
 	for (i = 0; i < LEN(cont_fields); i++)
 		if ((val = pdf_dval_val(pdf, len, cont, cont_fields[i])) >= 0)
-			pdfout("  %s %s\n", cont_fields[i],
+			sbuf_printf(sb, "  %s %s\n", cont_fields[i],
 				pdf_copy(pdf, len, val));
-	pdfout(">>\n");
-	stream = cont + pdf_len(pdf, len, cont);
-	stream += pdf_ws(pdf, len, stream);
-	pdfmem(pdf + stream, pdf_slen(pdf, len, stream, length));
-	pdfout("\n");
+	sbuf_printf(sb, ">>\n");
+	pdf_strcopy(pdf, len, cont, sb);
+	xobj_id = obj_beg(0);
+	pdfmem(sbuf_buf(sb), sbuf_len(sb));
 	obj_end();
+	sbuf_free(sb);
 	if (xobj_n == xobj_sz) {
 		xobj_sz += 8;
 		xobj = mextend(xobj, xobj_n, xobj_sz, sizeof(xobj[0]));

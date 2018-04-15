@@ -132,7 +132,7 @@ int pdf_dval(char *pdf, int len, int pos, char *key)
 	pos += 2;
 	while (pos + 2 < len && (pdf[pos] != '>' || pdf[pos + 1] != '>')) {
 		pos += pdf_ws(pdf, len, pos);
-		if (startswith(key, pdf + pos)) {
+		if (pdf_len(pdf, len, pos) == strlen(key) && startswith(key, pdf + pos)) {
 			pos += pdf_len(pdf, len, pos);
 			pos += pdf_ws(pdf, len, pos);
 			return pos;
