@@ -660,9 +660,9 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
 	if (bbox >= 0 && !pdfbbox(pdf, len, bbox, dim)) {
 		if (hwid > 0)
-			hzoom = hwid / (dim[2] - dim[0]);
+			hzoom = hwid / (dim[2] - dim[0]) * 7200 / dev_res;
 		if (vwid > 0)
-			vzoom = vwid / (dim[3] - dim[1]);
+			vzoom = vwid / (dim[3] - dim[1]) * 7200 / dev_res;
 		if (vwid <= 0)
 			vzoom = hzoom;
 		if (hwid <= 0)
