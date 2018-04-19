@@ -174,13 +174,20 @@ int pdf_lval(char *pdf, int len, int pos, int idx)
 	return -1;
 }
 
-void *memrchr(void *m, int c, long n);
+static void *my_memrchr(void *m, int c, long n)
+{
+	int i;
+	for (i = 0; i < n; i++)
+		if (*(unsigned char *) (m + n - 1 - i) == c)
+			return m + n - 1 - i;
+	return NULL;
+}
 
 static int prevline(char *pdf, int len, int off)
 {
-	char *nl = memrchr(pdf, '\n', off);
+	char *nl = my_memrchr(pdf, '\n', off);
 	if (nl && nl > pdf) {
-		char *nl2 = memrchr(pdf, '\n', nl - pdf -1);
+		char *nl2 = my_memrchr(pdf, '\n', nl - pdf - 1);
 		if (nl2)
 			return nl2 - pdf + 1;
 	}
