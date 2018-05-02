@@ -850,7 +850,7 @@ void draws(int h1, int v1, int h2, int v2)
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
 	if (title)
-		outinfo("Author", title);
+		outinfo("Title", title);
 	obj_map();
 	pdf_root = obj_map();
 	pdf_pages = obj_map();
