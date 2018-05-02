@@ -8,7 +8,8 @@
 #include <unistd.h>
 #include "post.h"
 
-static char *pdf_title;		/* document title */
+static char pdf_title[256];	/* document title */
+static char pdf_author[256];	/* document author */
 static int pdf_width;		/* page width */
 static int pdf_height;		/* page height */
 static int pdf_pages;		/* pages object id */
@@ -483,29 +484,8 @@ void outrotate(int deg)
 {
 }
 
-void outeps(char *eps)
+void outeps(char *eps, int hwid, int vwid)
 {
-}
-
-static char *strcut(char *dst, char *src)
-{
-	while (*src == ' ' || *src == '\n')
-		src++;
-	if (src[0] == '"') {
-		src++;
-		while (*src && (src[0] != '"' || src[1] == '"')) {
-			if (*src == '"')
-				src++;
-			*dst++ = *src++;
-		}
-		if (*src == '"')
-			src++;
-	} else {
-		while (*src && *src != ' ' && *src != '\n')
-			*dst++ = *src++;
-	}
-	*dst = '\0';
-	return src;
 }
 
 /* return a copy of a PDF object; returns a static buffer */
@@ -700,23 +680,12 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 	return xobj_n - 1;
 }
 
-void outpdf(char *spec)
+void outpdf(char *pdf, int hwid, int vwid)
 {
-	char pdf[1 << 12];
 	char buf[1 << 12];
 	struct sbuf *sb;
-	int hwid, vwid, nspec;
 	int xobj_id;
 	int fd, nr;
-	spec = strcut(pdf, spec);
-	if (!pdf[0])
-		return;
-	/* requested image dimensions */
-	nspec = sscanf(spec, "%d %d", &hwid, &vwid);
-	if (nspec < 1)
-		hwid = 0;
-	if (nspec < 2)
-		vwid = 0;
 	/* reading the pdf file */
 	sb = sbuf_make();
 	fd = open(pdf, O_RDONLY);
@@ -734,15 +703,9 @@ void outpdf(char *spec)
 	p_v = -1;
 }
 
-void outlink(char *spec)
+void outlink(char *lnk, int hwid, int vwid)
 {
-	char lnk[1 << 12];
-	int hwid, vwid;
-	int nspec;
 	if (ann_n == LEN(ann))
-		return;
-	spec = strcut(lnk, spec);
-	if (!lnk[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) != 2)
 		return;
 	o_flush();
 	ann[ann_n++] = obj_beg(0);
@@ -755,6 +718,14 @@ void outlink(char *spec)
 	pdfout("  /A << /S /URI /URI (%s) >>\n", lnk);
 	pdfout(">>\n");
 	obj_end();
+}
+
+void outinfo(char *kwd, char *val)
+{
+	if (!strcmp("Author", kwd))
+		snprintf(pdf_author, sizeof(pdf_author), "%s", val);
+	if (!strcmp("Title", kwd))
+		snprintf(pdf_title, sizeof(pdf_title), "%s", val);
 }
 
 void outpage(void)
@@ -878,11 +849,11 @@ void draws(int h1, int v1, int h2, int v2)
 
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
-	pdf_title = title;
+	if (title)
+		outinfo("Author", title);
 	obj_map();
 	pdf_root = obj_map();
 	pdf_pages = obj_map();
-	pdf_title = title;
 	pdfout("%%PDF-1.6\n\n");
 	pdf_width = (pagewidth * 72 + 127) / 254;
 	pdf_height = (pageheight * 72 + 127) / 254;
@@ -917,8 +888,10 @@ void doctrailer(int pages)
 	/* info object */
 	info_id = obj_beg(0);
 	pdfout("<<\n");
-	if (pdf_title)
+	if (pdf_title[0])
 		pdfout("  /Title (%s)\n", pdf_title);
+	if (pdf_author[0])
+		pdfout("  /Author (%s)\n", pdf_author);
 	pdfout("  /Creator (Neatroff)\n");
 	pdfout("  /Producer (Neatpost)\n");
 	pdfout(">>\n");

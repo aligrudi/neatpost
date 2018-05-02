@@ -5,6 +5,8 @@
 #include <string.h>
 #include "post.h"
 
+static char ps_title[256];	/* document title */
+static char ps_author[256];	/* document author */
 static int o_f, o_s, o_m;	/* font and size */
 static int o_h, o_v;		/* current user position */
 static int p_f, p_s, p_m;	/* output postscript font */
@@ -255,43 +257,12 @@ void draws(int h1, int v1, int h2, int v2)
 	outrel(h1, v1);
 }
 
-static char *strcut(char *dst, char *src)
+void outeps(char *eps, int hwid, int vwid)
 {
-	while (*src == ' ' || *src == '\n')
-		src++;
-	if (src[0] == '"') {
-		src++;
-		while (*src && (src[0] != '"' || src[1] == '"')) {
-			if (*src == '"')
-				src++;
-			*dst++ = *src++;
-		}
-		if (*src == '"')
-			src++;
-	} else {
-		while (*src && *src != ' ' && *src != '\n')
-			*dst++ = *src++;
-	}
-	*dst = '\0';
-	return src;
-}
-
-void outeps(char *spec)
-{
-	char eps[1 << 12];
 	char buf[1 << 12];
 	int llx, lly, urx, ury;
-	int hwid, vwid;
 	FILE *filp;
-	int nspec, nbb;
-	spec = strcut(eps, spec);
-	if (!eps[0])
-		return;
-	nspec = sscanf(spec, "%d %d", &hwid, &vwid);
-	if (nspec < 1)
-		hwid = 0;
-	if (nspec < 2)
-		vwid = 0;
+	int nbb;
 	if (!(filp = fopen(eps, "r")))
 		return;
 	if (!fgets(buf, sizeof(buf), filp) ||
@@ -330,18 +301,12 @@ void outeps(char *spec)
 	outf("EPSFEND\n");
 }
 
-void outpdf(char *spec)
+void outpdf(char *pdf, int hwid, int vwid)
 {
 }
 
-void outlink(char *spec)
+void outlink(char *lnk, int hwid, int vwid)
 {
-	char lnk[1 << 12];
-	int hwid, vwid;
-	int nspec;
-	spec = strcut(lnk, spec);
-	if (!lnk[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) != 2)
-		return;
 	o_flush();
 	if (lnk[0] == '#' || isdigit((unsigned char) lnk[0])) {
 		outf("[ /Rect [ %d %d t %d %d t ] %s%s "
@@ -355,6 +320,14 @@ void outlink(char *spec)
 			"/Subtype /Link /LNK pdfmark\n",
 			o_h, o_v, o_h + hwid, o_v + vwid, lnk);
 	}
+}
+
+void outinfo(char *kwd, char *val)
+{
+	if (!strcmp("Author", kwd))
+		snprintf(ps_author, sizeof(ps_author), "%s", val);
+	if (!strcmp("Title", kwd))
+		snprintf(ps_title, sizeof(ps_title), "%s", val);
 }
 
 void docpagebeg(int n)
@@ -374,6 +347,12 @@ void docpageend(int n)
 
 void doctrailer(int pages)
 {
+	out("[");
+	if (ps_title[0])
+		out(" /Title (%s)", ps_title);
+	if (ps_author[0])
+		out(" /Author (%s)", ps_author);
+	out("/Creator (Neatroff) /DOCINFO pdfmark\n");
 	out("%%%%Trailer\n");
 	out("done\n");
 	out("%%%%DocumentFonts: %s\n", o_fonts);

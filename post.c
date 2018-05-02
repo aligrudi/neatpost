@@ -248,6 +248,27 @@ static void postdraw(void)
 	nexteol();
 }
 
+static char *strcut(char *dst, char *src)
+{
+	while (*src == ' ' || *src == '\n')
+		src++;
+	if (src[0] == '"') {
+		src++;
+		while (*src && (src[0] != '"' || src[1] == '"')) {
+			if (*src == '"')
+				src++;
+			*dst++ = *src++;
+		}
+		if (*src == '"')
+			src++;
+	} else {
+		while (*src && *src != ' ' && *src != '\n')
+			*dst++ = *src++;
+	}
+	*dst = '\0';
+	return src;
+}
+
 static void postps(void)
 {
 	char cmd[ILNLEN];
@@ -258,12 +279,46 @@ static void postps(void)
 		out("%s\n", arg);
 	if (!strcmp("rotate", cmd))
 		outrotate(atoi(arg));
-	if (!strcmp("eps", cmd))
-		outeps(arg);
-	if (!strcmp("pdf", cmd))
-		outpdf(arg);
-	if (!strcmp("link", cmd))
-		outlink(arg);
+	if (!strcmp("eps", cmd) || !strcmp("pdf", cmd)) {
+		char path[1 << 12];
+		int hwid, vwid, nspec;
+		char *spec = arg;
+		spec = strcut(path, spec);
+		nspec = sscanf(spec, "%d %d", &hwid, &vwid);
+		if (nspec < 1)
+			hwid = 0;
+		if (nspec < 2)
+			vwid = 0;
+		if (path[0] && !strcmp("eps", cmd))
+			outeps(path, hwid, vwid);
+		if (path[0] && !strcmp("pdf", cmd))
+			outpdf(path, hwid, vwid);
+	}
+	if (!strcmp("link", cmd)) {
+		char link[1 << 12];
+		int hwid, vwid, nspec;
+		char *spec = arg;
+		spec = strcut(link, spec);
+		nspec = sscanf(spec, "%d %d", &hwid, &vwid);
+		if (link[0] && nspec == 2)
+			outlink(link, hwid, vwid);
+	}
+	if (!strcmp("info", cmd)) {
+		char *spec = arg;
+		char kwd[128];
+		int i = 0;
+		while (*spec == ' ')
+			spec++;
+		while (*spec && *spec != ' ') {
+			if (i < sizeof(kwd) - 1)
+				kwd[i++] = *spec;
+			spec++;
+		}
+		kwd[i] = '\0';
+		while (*spec == ' ')
+			spec++;
+		outinfo(kwd, spec);
+	}
 	if (!strcmp("BeginObject", cmd))
 		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))
