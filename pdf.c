@@ -1,4 +1,5 @@
 /* PDF post-processor functions */
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -26,8 +27,10 @@ static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
 static char o_iset[1024];	/* fonts accesssed in this page */
-static int *xobj;		/* page xobject object ids  */
-static int xobj_sz, xobj_n;	/* number of xobjects */
+static int xobj[128];		/* page xobject object ids */
+static int xobj_n;		/* number of xobjects in this page */
+static int ann[128];		/* page annotations */
+static int ann_n;		/* number of annotations in this page */
 
 /* loaded PDF fonts */
 struct pfont {
@@ -637,6 +640,8 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 	int hzoom = 100, vzoom = 100;
 	struct sbuf *sb;
 	int i;
+	if (xobj_n == LEN(xobj))
+		return -1;
 	if ((trailer = pdf_trailer(pdf, len)) < 0)
 		return -1;
 	if ((root = pdf_dval_obj(pdf, len, trailer, "/Root")) < 0)
@@ -691,10 +696,6 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 	pdfmem(sbuf_buf(sb), sbuf_len(sb));
 	obj_end();
 	sbuf_free(sb);
-	if (xobj_n == xobj_sz) {
-		xobj_sz += 8;
-		xobj = mextend(xobj, xobj_n, xobj_sz, sizeof(xobj[0]));
-	}
 	xobj[xobj_n++] = xobj_id;
 	return xobj_n - 1;
 }
@@ -727,13 +728,33 @@ void outpdf(char *spec)
 	sbuf_free(sb);
 	o_flush();
 	out_fontup();
-	sbuf_printf(pg, "ET /FO%d Do BT\n", xobj_id);
+	if (xobj_id >= 0)
+		sbuf_printf(pg, "ET /FO%d Do BT\n", xobj_id);
 	p_h = -1;
 	p_v = -1;
 }
 
 void outlink(char *spec)
 {
+	char lnk[1 << 12];
+	int hwid, vwid;
+	int nspec;
+	if (ann_n == LEN(ann))
+		return;
+	spec = strcut(lnk, spec);
+	if (!lnk[0] || (nspec = sscanf(spec, "%d %d", &hwid, &vwid)) != 2)
+		return;
+	o_flush();
+	ann[ann_n++] = obj_beg(0);
+	pdfout("<<\n");
+	pdfout("  /Type /Annot\n");
+	pdfout("  /Subtype /Link\n");
+	pdfout("  /Rect [%s", pdfpos(o_h, o_v));
+	pdfout(" %s]\n", pdfpos(o_h + hwid, o_v + vwid));
+	/* only external links are supported */
+	pdfout("  /A << /S /URI /URI (%s) >>\n", lnk);
+	pdfout(">>\n");
+	obj_end();
 }
 
 void outpage(void)
@@ -973,12 +994,16 @@ void ps_pageend(int n)
 	}
 	pdfout("  >>\n");
 	pdfout("  /Contents %d 0 R\n", cont_id);
+	if (ann_n) {
+		pdfout("  /Annots [");
+		for (i = 0; i < ann_n; i++)
+			pdfout(" %d 0 R", ann[i]);
+		pdfout(" ]\n");
+	}
 	pdfout(">>\n");
 	obj_end();
 	sbuf_free(pg);
 	memset(o_iset, 0, pfonts_n * sizeof(o_iset[0]));
-	free(xobj);
-	xobj = NULL;
 	xobj_n = 0;
-	xobj_sz = 0;
+	ann_n = 0;
 }
