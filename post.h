@@ -74,11 +74,10 @@ void drawe(int h, int v);
 void drawa(int h1, int v1, int h2, int v2);
 void draws(int h1, int v1, int h2, int v2);
 
-/* postscript functions */
-void ps_header(char *title, int pagewidth, int pageheight, int linewidth);
-void ps_trailer(int pages);
-void ps_pagebeg(int n);
-void ps_pageend(int n);
+void docheader(char *title, int pagewidth, int pageheight, int linewidth);
+void doctrailer(int pages);
+void docpagebeg(int n);
+void docpageend(int n);
 
 /* colors */
 #define CLR_R(c)		(((c) >> 16) & 0xff)

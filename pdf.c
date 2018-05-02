@@ -876,7 +876,7 @@ void draws(int h1, int v1, int h2, int v2)
 	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
-void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
+void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
 	pdf_title = title;
 	obj_map();
@@ -888,7 +888,7 @@ void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
 	pdf_height = (pageheight * 72 + 127) / 254;
 }
 
-void ps_trailer(int pages)
+void doctrailer(int pages)
 {
 	int i;
 	int xref_off;
@@ -944,13 +944,13 @@ void ps_trailer(int pages)
 	free(obj_off);
 }
 
-void ps_pagebeg(int n)
+void docpagebeg(int n)
 {
 	pg = sbuf_make();
 	sbuf_printf(pg, "BT\n");
 }
 
-void ps_pageend(int n)
+void docpageend(int n)
 {
 	int cont_id;
 	int i;

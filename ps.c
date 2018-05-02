@@ -357,7 +357,7 @@ void outlink(char *spec)
 	}
 }
 
-void ps_pagebeg(int n)
+void docpagebeg(int n)
 {
 	out("%%%%Page: %d %d\n", n, n);
 	out("/saveobj save def\n");
@@ -365,14 +365,14 @@ void ps_pagebeg(int n)
 	out("%d pagesetup\n", n);
 }
 
-void ps_pageend(int n)
+void docpageend(int n)
 {
 	out("cleartomark\n");
 	out("showpage\n");
 	out("saveobj restore\n");
 }
 
-void ps_trailer(int pages)
+void doctrailer(int pages)
 {
 	out("%%%%Trailer\n");
 	out("done\n");
@@ -482,7 +482,7 @@ static char *prolog =
 	"} bind def\n";
 
 /* pagewidth and pageheight are in tenths of a millimetre */
-void ps_header(char *title, int pagewidth, int pageheight, int linewidth)
+void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");

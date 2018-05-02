@@ -291,7 +291,7 @@ static void postx(void)
 			fprintf(stderr, "neatpost: cannot open device %s\n", postdev);
 			exit(1);
 		}
-		ps_header(ps_title, ps_pagewidth, ps_pageheight, ps_linewidth);
+		docheader(ps_title, ps_pagewidth, ps_pageheight, ps_linewidth);
 		break;
 	case 'T':
 		nextword(postdev);
@@ -350,9 +350,9 @@ static void postcmd(int c)
 		break;
 	case 'p':
 		if (o_pages)
-			ps_pageend(o_pages);
+			docpageend(o_pages);
 		o_pages = nextnum();
-		ps_pagebeg(o_pages);
+		docpagebeg(o_pages);
 		outpage();
 		break;
 	case 'w':
@@ -383,7 +383,7 @@ static void post(void)
 		if (!isspace(c))
 			postcmd(c);
 	if (o_pages)
-		ps_pageend(o_pages);
+		docpageend(o_pages);
 }
 
 static struct paper {
@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	post();
-	ps_trailer(o_pages);
+	doctrailer(o_pages);
 	dev_close();
 	return 0;
 }
