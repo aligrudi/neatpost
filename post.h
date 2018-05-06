@@ -60,6 +60,7 @@ void outrotate(int deg);
 void outeps(char *eps, int hwid, int vwid);
 void outpdf(char *pdf, int hwid, int vwid);
 void outlink(char *dst, int hwid, int vwid);
+void outinfo(char *kwd, char *val);
 void outpage(void);
 void outmnt(int f);
 void outgname(int g);
