@@ -122,7 +122,7 @@ static int fonttype(char *path)
 	if (ext && !strcmp(".ttf", ext))
 		return 't';
 	if (ext && !strcmp(".otf", ext))
-		return 'o';
+		return 't';
 	return '1';
 }
 
