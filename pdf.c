@@ -112,6 +112,7 @@ static int type1lengths(char *t1, int l, int *l1, int *l2, int *l3)
 			fixedcont = t1 + i;
 	*l1 = encrypted - cleartext;
 	*l2 = fixedcont ? fixedcont - cleartext : 0;
+	*l3 = fixedcont ? t1 + l - fixedcont : 0;
 	return 0;
 }
 
@@ -241,6 +242,7 @@ static int writedesc(struct font *fn)
 			if (l3)
 				sbuf_cut(ffsb, l1 + l2);
 			l1 -= l3;
+			l3 = 0;
 		}
 		/* encoding file contents */
 		encodehex(sb, sbuf_buf(ffsb), sbuf_len(ffsb));
