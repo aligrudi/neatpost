@@ -124,6 +124,8 @@ static int fonttype(char *path)
 		return 't';
 	if (ext && !strcmp(".otf", ext))
 		return 't';
+	if (ext && (!strcmp(".ttc", ext) || !strcmp(".otc", ext)))
+		return 't';
 	return '1';
 }
 
