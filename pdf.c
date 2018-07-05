@@ -778,6 +778,8 @@ void drawend(int close, int fill)
 		sbuf_printf(pg, "f\n");
 	else
 		sbuf_printf(pg, close ? "s\n" : "S\n");
+	p_v = 0;
+	p_h = 0;
 }
 
 void drawmbeg(char *s)
