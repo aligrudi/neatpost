@@ -602,14 +602,24 @@ static void pdf_rescopy(char *pdf, int len, int pos, struct sbuf *sb)
 	sbuf_printf(sb, "  >>\n");
 }
 
-static int pdfbbox(char *pdf, int len, int pos, int dim[4])
+static int pdfbbox100(char *pdf, int len, int pos, int dim[4])
 {
 	int val;
 	int i;
 	for (i = 0; i < 4; i++) {
+		int n = 0, f1 = 0, f2 = 0;
 		if ((val = pdf_lval(pdf, len, pos, i)) < 0)
 			return -1;
-		dim[i] = atoi(pdf + val);
+		for (; isdigit((unsigned char) pdf[val]); val++)
+			n = n * 10 + pdf[val] - '0';
+		if (pdf[val] == '.') {
+			if (isdigit((unsigned char) pdf[val + 1])) {
+				f1 = pdf[val + 1] - '0';
+				if (isdigit((unsigned char) pdf[val + 2]))
+					f2 = pdf[val + 2] - '0';
+			}
+		}
+		dim[i] = n * 100 + f1 * 10 + f2;
 	}
 	return 0;
 }
@@ -647,11 +657,11 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 	bbox = pdf_dval_val(pdf, len, page1, "/MediaBox");
 	if (bbox < 0)
 		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
-	if (bbox >= 0 && !pdfbbox(pdf, len, bbox, dim)) {
+	if (bbox >= 0 && !pdfbbox100(pdf, len, bbox, dim)) {
 		if (hwid > 0)
-			hzoom = hwid / (dim[2] - dim[0]) * 7200 / dev_res;
+			hzoom = (long) hwid * (100 * 7200 / dev_res) / (dim[2] - dim[0]);
 		if (vwid > 0)
-			vzoom = vwid / (dim[3] - dim[1]) * 7200 / dev_res;
+			vzoom = (long) vwid * (100 * 7200 / dev_res) / (dim[3] - dim[1]);
 		if (vwid <= 0)
 			vzoom = hzoom;
 		if (hwid <= 0)
