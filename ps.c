@@ -7,6 +7,7 @@
 
 static char ps_title[256];	/* document title */
 static char ps_author[256];	/* document author */
+static int ps_height;		/* document height in basic units */
 static int o_f, o_s, o_m;	/* font and size */
 static int o_h, o_v;		/* current user position */
 static int p_f, p_s, p_m;	/* output postscript font */
@@ -322,6 +323,39 @@ void outlink(char *lnk, int hwid, int vwid)
 	}
 }
 
+void outname(char *name, int page, int off)
+{
+	o_flush();
+	outf("[ /Dest /%s", name);
+	if (page > 0)
+		outf(" /Page %d", page);
+	if (off > 0)
+		outf(" /View [/XYZ null %d null]",
+			(ps_height - off) * 72 / dev_res);
+	outf(" /DEST pdfmark\n");
+}
+
+void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
+{
+	int i, j;
+	o_flush();
+	for (i = 0; i < n; i++) {
+		int cnt = 0;
+		for (j = i + 1; j < n && level[j] > level[i]; j++)
+			if (level[j] == level[i] + 1)
+				cnt++;
+		outf("[ /Title (%s)", desc[i]);
+		if (page[i] > 0)
+			outf(" /Page %d", page[i]);
+		if (cnt > 0)
+			outf(" /Count %d", cnt);
+		if (off[i] > 0)
+			outf(" /View [/XYZ null %d null]",
+				(ps_height - off[i]) * 72 / dev_res);
+		outf(" /OUT pdfmark\n");
+	}
+}
+
 void outinfo(char *kwd, char *val)
 {
 	if (!strcmp("Author", kwd))
@@ -352,7 +386,7 @@ void doctrailer(int pages)
 		out(" /Title (%s)", ps_title);
 	if (ps_author[0])
 		out(" /Author (%s)", ps_author);
-	out("/Creator (Neatroff) /DOCINFO pdfmark\n");
+	out(" /Creator (Neatroff) /DOCINFO pdfmark\n");
 	out("%%%%Trailer\n");
 	out("done\n");
 	out("%%%%DocumentFonts: %s\n", o_fonts);
@@ -463,6 +497,7 @@ static char *prolog =
 /* pagewidth and pageheight are in tenths of a millimetre */
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
+	ps_height = pageheight * dev_res / 254;
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");
 	if (title)

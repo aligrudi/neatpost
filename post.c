@@ -27,6 +27,14 @@ static int ps_pageheight = 2794;/* page height (tenths of a millimetre) */
 static int ps_linewidth = 40;	/* drawing line thickness in thousandths of an em */
 static int o_pages;		/* output pages */
 
+/* bookmark management */
+static char (*mark_desc)[256];	/* bookmark description */
+static int *mark_page;		/* bookmark page */
+static int *mark_offset;	/* bookmark offset */
+static int *mark_level;		/* bookmark level */
+static int mark_n;		/* number of bookmarks */
+static int mark_sz;		/* allocated size of bookmark arrays */
+
 static int next(void)
 {
 	return getc(stdin);
@@ -294,6 +302,14 @@ static void postps(void)
 		if (path[0] && !strcmp("pdf", cmd))
 			outpdf(path, hwid, vwid);
 	}
+	if (!strcmp("name", cmd)) {
+		char name[1 << 10];
+		int page = 0, offset = 0;
+		int nspec;
+		nspec = sscanf(arg, "%s %d %d", name, &page, &offset);
+		if (name[0] && nspec > 1)
+			outname(name, page == o_pages ? 0 : page, offset);
+	}
 	if (!strcmp("link", cmd)) {
 		char link[1 << 12];
 		int hwid, vwid, nspec;
@@ -302,6 +318,21 @@ static void postps(void)
 		nspec = sscanf(spec, "%d %d", &hwid, &vwid);
 		if (link[0] && nspec == 2)
 			outlink(link, hwid, vwid);
+	}
+	if (!strcmp("mark", cmd)) {
+		char *spec = arg;
+		if (mark_n == mark_sz) {
+			mark_sz = mark_sz == 0 ? 128 : mark_sz * 2;
+			mark_desc = mextend(mark_desc, mark_n, mark_sz, sizeof(mark_desc[0]));
+			mark_page = mextend(mark_page, mark_n, mark_sz, sizeof(mark_page[0]));
+			mark_offset = mextend(mark_offset, mark_n, mark_sz, sizeof(mark_offset[0]));
+			mark_level = mextend(mark_level, mark_n, mark_sz, sizeof(mark_level[0]));
+		}
+		spec = strcut(mark_desc[mark_n], spec);
+		sscanf(spec, "%d %d %d", &mark_page[mark_n],
+				&mark_offset[mark_n], &mark_level[mark_n]);
+		if (mark_desc[mark_n][0])
+			mark_n++;
 	}
 	if (!strcmp("info", cmd)) {
 		char *spec = arg;
@@ -439,6 +470,7 @@ static void post(void)
 			postcmd(c);
 	if (o_pages)
 		docpageend(o_pages);
+	outmark(mark_n, mark_desc, mark_page, mark_offset, mark_level);
 }
 
 static struct paper {
@@ -530,5 +562,9 @@ int main(int argc, char *argv[])
 	post();
 	doctrailer(o_pages);
 	dev_close();
+	free(mark_desc);
+	free(mark_page);
+	free(mark_offset);
+	free(mark_level);
 	return 0;
 }

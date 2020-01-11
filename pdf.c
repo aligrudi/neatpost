@@ -734,6 +734,14 @@ void outlink(char *lnk, int hwid, int vwid)
 	obj_end();
 }
 
+void outname(char *name, int page, int off)
+{
+}
+
+void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
+{
+}
+
 void outinfo(char *kwd, char *val)
 {
 	if (!strcmp("Author", kwd))
