@@ -1,7 +1,7 @@
 /*
  * NEATPOST: NEATROFF'S POSTSCRIPT/PDF POSTPROCESSOR
  *
- * Copyright (C) 2013-2018 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2020 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,13 +27,20 @@ static int ps_pageheight = 2794;/* page height (tenths of a millimetre) */
 static int ps_linewidth = 40;	/* drawing line thickness in thousandths of an em */
 static int o_pages;		/* output pages */
 
-/* bookmark management */
+/* bookmarks */
 static char (*mark_desc)[256];	/* bookmark description */
 static int *mark_page;		/* bookmark page */
 static int *mark_offset;	/* bookmark offset */
 static int *mark_level;		/* bookmark level */
 static int mark_n;		/* number of bookmarks */
 static int mark_sz;		/* allocated size of bookmark arrays */
+
+/* named destinations */
+static char (*name_desc)[64];	/* reference name */
+static int *name_page;		/* reference page */
+static int *name_offset;	/* reference offset */
+static int name_n;		/* number of references */
+static int name_sz;		/* allocated size of name arrays */
 
 static int next(void)
 {
@@ -303,12 +310,34 @@ static void postps(void)
 			outpdf(path, hwid, vwid);
 	}
 	if (!strcmp("name", cmd)) {
-		char name[1 << 10];
-		int page = 0, offset = 0;
+		char *spec = arg;
 		int nspec;
-		nspec = sscanf(arg, "%s %d %d", name, &page, &offset);
-		if (name[0] && nspec > 1)
-			outname(name, page == o_pages ? 0 : page, offset);
+		if (name_n == name_sz) {
+			name_sz = name_sz == 0 ? 128 : name_sz * 2;
+			name_desc = mextend(name_desc, name_n, name_sz, sizeof(name_desc[0]));
+			name_page = mextend(name_page, name_n, name_sz, sizeof(name_page[0]));
+			name_offset = mextend(name_offset, name_n, name_sz, sizeof(name_offset[0]));
+		}
+		spec = strcut(name_desc[name_n], spec);
+		nspec = sscanf(spec, "%d %d", &name_page[name_n], &name_offset[name_n]);
+		if (name_desc[name_n][0] && nspec > 0)
+			name_n++;
+	}
+	if (!strcmp("mark", cmd)) {
+		char *spec = arg;
+		int nspec;
+		if (mark_n == mark_sz) {
+			mark_sz = mark_sz == 0 ? 128 : mark_sz * 2;
+			mark_desc = mextend(mark_desc, mark_n, mark_sz, sizeof(mark_desc[0]));
+			mark_page = mextend(mark_page, mark_n, mark_sz, sizeof(mark_page[0]));
+			mark_offset = mextend(mark_offset, mark_n, mark_sz, sizeof(mark_offset[0]));
+			mark_level = mextend(mark_level, mark_n, mark_sz, sizeof(mark_level[0]));
+		}
+		spec = strcut(mark_desc[mark_n], spec);
+		nspec = sscanf(spec, "%d %d %d", &mark_page[mark_n],
+				&mark_offset[mark_n], &mark_level[mark_n]);
+		if (mark_desc[mark_n][0] && nspec > 0)
+			mark_n++;
 	}
 	if (!strcmp("link", cmd)) {
 		char link[1 << 12];
@@ -318,21 +347,6 @@ static void postps(void)
 		nspec = sscanf(spec, "%d %d", &hwid, &vwid);
 		if (link[0] && nspec == 2)
 			outlink(link, hwid, vwid);
-	}
-	if (!strcmp("mark", cmd)) {
-		char *spec = arg;
-		if (mark_n == mark_sz) {
-			mark_sz = mark_sz == 0 ? 128 : mark_sz * 2;
-			mark_desc = mextend(mark_desc, mark_n, mark_sz, sizeof(mark_desc[0]));
-			mark_page = mextend(mark_page, mark_n, mark_sz, sizeof(mark_page[0]));
-			mark_offset = mextend(mark_offset, mark_n, mark_sz, sizeof(mark_offset[0]));
-			mark_level = mextend(mark_level, mark_n, mark_sz, sizeof(mark_level[0]));
-		}
-		spec = strcut(mark_desc[mark_n], spec);
-		sscanf(spec, "%d %d %d", &mark_page[mark_n],
-				&mark_offset[mark_n], &mark_level[mark_n]);
-		if (mark_desc[mark_n][0])
-			mark_n++;
 	}
 	if (!strcmp("info", cmd)) {
 		char *spec = arg;
@@ -470,7 +484,10 @@ static void post(void)
 			postcmd(c);
 	if (o_pages)
 		docpageend(o_pages);
-	outmark(mark_n, mark_desc, mark_page, mark_offset, mark_level);
+	if (name_n)
+		outname(name_n, name_desc, name_page, name_offset);
+	if (mark_n)
+		outmark(mark_n, mark_desc, mark_page, mark_offset, mark_level);
 }
 
 static struct paper {
@@ -566,5 +583,8 @@ int main(int argc, char *argv[])
 	free(mark_page);
 	free(mark_offset);
 	free(mark_level);
+	free(name_desc);
+	free(name_page);
+	free(name_offset);
 	return 0;
 }

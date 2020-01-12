@@ -323,16 +323,18 @@ void outlink(char *lnk, int hwid, int vwid)
 	}
 }
 
-void outname(char *name, int page, int off)
+void outname(int n, char (*desc)[64], int *page, int *off)
 {
+	int i;
 	o_flush();
-	outf("[ /Dest /%s", name);
-	if (page > 0)
-		outf(" /Page %d", page);
-	if (off > 0)
-		outf(" /View [/XYZ null %d null]",
-			(ps_height - off) * 72 / dev_res);
-	outf(" /DEST pdfmark\n");
+	for (i = 0; i < n; i++) {
+		outf("[ /Dest /%s", desc[i]);
+		outf(" /Page %d", page[i]);
+		if (off[i] > 0)
+			outf(" /View [/XYZ null %d null]",
+				(ps_height - off[i]) * 72 / dev_res);
+		outf(" /DEST pdfmark\n");
+	}
 }
 
 void outmark(int n, char (*desc)[256], int *page, int *off, int *level)

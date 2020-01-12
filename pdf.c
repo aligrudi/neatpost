@@ -19,6 +19,8 @@ static int *obj_off;		/* object offsets */
 static int obj_sz, obj_n;	/* number of pdf objects */
 static int *page_id;		/* page object ids */
 static int page_sz, page_n;	/* number of pages */
+static int pdf_outline;		/* pdf outline hierarchiy */
+static int pdf_dests;		/* named destinations */
 
 static struct sbuf *pg;		/* current page contents */
 static int o_f, o_s, o_m;	/* font and size */
@@ -728,18 +730,95 @@ void outlink(char *lnk, int hwid, int vwid)
 	pdfout("  /Subtype /Link\n");
 	pdfout("  /Rect [%s", pdfpos(o_h, o_v));
 	pdfout(" %s]\n", pdfpos(o_h + hwid, o_v + vwid));
-	/* only external links are supported */
-	pdfout("  /A << /S /URI /URI (%s) >>\n", lnk);
+	if (lnk[0] == '#') {	/* internal links */
+		pdfout("  /A << /S /GoTo /D (%s) >>\n", lnk + 1);
+	} else {		/* external links */
+		pdfout("  /A << /S /URI /URI (%s) >>\n", lnk);
+	}
 	pdfout(">>\n");
 	obj_end();
 }
 
-void outname(char *name, int page, int off)
+void outname(int n, char (*desc)[64], int *page, int *off)
 {
+	int i;
+	o_flush();
+	pdf_dests = obj_beg(0);
+	pdfout("<<\n");
+	for (i = 0; i < n; i++) {
+		if (page[i] > 0 && page[i] - 1 < page_n)
+			pdfout("  /%s [ %d 0 R /XYZ 0 %d 0 ]\n",
+				desc[i], page_id[page[i] - 1],
+				pdf_height - (off[i] * 72 / dev_res));
+	}
+	pdfout(">>\n");
+	obj_end();
 }
 
 void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
 {
+	int *objs = malloc(n * sizeof(objs[0]));
+	int i, j;
+	int cnt = 0;
+	/* allocating objects */
+	pdf_outline = obj_map();
+	for (i = 0; i < n; i++)
+		objs[i] = obj_map();
+	o_flush();
+	/* root object */
+	obj_beg(pdf_outline);
+	pdfout("<<\n");
+	for (i = 0; i < n; i++)
+		if (level[i] == 0)
+			cnt++;
+	pdfout("  /Count %d\n", cnt);
+	pdfout("  /First %d 0 R\n", objs[0]);
+	for (i = n - 1; i > 0 && level[i] > 0; i--)
+		;
+	pdfout("  /Last %d 0 R\n", objs[i]);
+	pdfout(">>\n");
+	obj_end();
+	/* other objects */
+	for (i = 0; i < n; i++) {
+		int cnt = 0;
+		for (j = i + 1; j < n && level[j] > level[i]; j++)
+			if (level[j] == level[i] + 1)
+				cnt++;
+		obj_beg(objs[i]);
+		pdfout("<<\n");
+		pdfout("  /Title (%s)\n", desc[i]);
+		/* the parent field */
+		for (j = i - 1; j >= 0 && level[j] >= level[i]; j--)
+			;
+		pdfout("  /Parent %d 0 R\n", j >= 0 ? objs[j] : pdf_outline);
+		/* the next field */
+		for (j = i + 1; j < n && level[j] > level[i]; j++)
+			;
+		if (j < n && level[j] == level[i])
+			pdfout("  /Next %d 0 R\n", objs[j]);
+		/* the prev field */
+		for (j = i - 1; j >= 0 && level[j] > level[i]; j--)
+			;
+		if (j >= 0 && level[j] == level[i])
+			pdfout("  /Prev %d 0 R\n", objs[j]);
+		/* node children */
+		if (cnt) {
+			int last = 0;
+			pdfout("  /Count %d\n", cnt);
+			pdfout("  /First %d 0 R\n", objs[i + 1]);
+			for (j = i + 1; j < n && level[j] > level[i]; j++)
+				if (level[j] == level[i] + 1)
+					last = j;
+			pdfout("  /Last %d 0 R\n", objs[last]);
+		}
+		if (page[i] > 0 && page[i] - 1 < page_n)
+			pdfout("  /Dest [ %d 0 R /XYZ 0 %d 0 ]\n",
+				page_id[page[i] - 1],
+				pdf_height - (off[i] * 72 / dev_res));
+		pdfout(">>\n");
+		obj_end();
+	}
+	free(objs);
 }
 
 void outinfo(char *kwd, char *val)
@@ -905,6 +984,10 @@ void doctrailer(int pages)
 	pdfout("<<\n");
 	pdfout("  /Type /Catalog\n");
 	pdfout("  /Pages %d 0 R\n", pdf_pages);
+	if (pdf_dests > 0)
+		pdfout("  /Dests %d 0 R\n", pdf_dests);
+	if (pdf_outline > 0)
+		pdfout("  /Outlines %d 0 R\n", pdf_outline);
 	pdfout(">>\n");
 	obj_end();
 	/* fonts */
