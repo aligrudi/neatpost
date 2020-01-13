@@ -769,11 +769,11 @@ void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
 	obj_beg(pdf_outline);
 	pdfout("<<\n");
 	for (i = 0; i < n; i++)
-		if (level[i] == 0)
+		if (level[i] == level[0])
 			cnt++;
 	pdfout("  /Count %d\n", cnt);
 	pdfout("  /First %d 0 R\n", objs[0]);
-	for (i = n - 1; i > 0 && level[i] > 0; i--)
+	for (i = n - 1; i > 0 && level[i] > level[0]; i--)
 		;
 	pdfout("  /Last %d 0 R\n", objs[i]);
 	pdfout(">>\n");
