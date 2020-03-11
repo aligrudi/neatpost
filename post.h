@@ -110,6 +110,8 @@ int dict_prefix(struct dict *d, char *key, int *idx);
 
 /* memory allocation */
 void *mextend(void *old, long oldsz, long newsz, int memsz);
+/* helper functions */
+char *pdftext_static(char *s);
 
 /* string buffers */
 struct sbuf *sbuf_make(void);

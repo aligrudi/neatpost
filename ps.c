@@ -317,9 +317,9 @@ void outlink(char *lnk, int hwid, int vwid)
 			lnk[0] == '#' ? lnk + 1 : lnk);
 	} else {
 		outf("[ /Rect [ %d %d t %d %d t ] "
-			"/Action << /Subtype /URI /URI (%s) >> /Open true "
+			"/Action << /Subtype /URI /URI %s >> /Open true "
 			"/Subtype /Link /LNK pdfmark\n",
-			o_h, o_v, o_h + hwid, o_v + vwid, lnk);
+			o_h, o_v, o_h + hwid, o_v + vwid, pdftext_static(lnk));
 	}
 }
 
@@ -346,7 +346,7 @@ void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
 		for (j = i + 1; j < n && level[j] > level[i]; j++)
 			if (level[j] == level[i] + 1)
 				cnt++;
-		outf("[ /Title (%s)", desc[i]);
+		outf("[ /Title %s", pdftext_static(desc[i]));
 		if (page[i] > 0)
 			outf(" /Page %d", page[i]);
 		if (cnt > 0)
@@ -385,9 +385,9 @@ void doctrailer(int pages)
 {
 	out("[");
 	if (ps_title[0])
-		out(" /Title (%s)", ps_title);
+		out(" /Title %s", pdftext_static(ps_title));
 	if (ps_author[0])
-		out(" /Author (%s)", ps_author);
+		out(" /Author %s", pdftext_static(ps_author));
 	out(" /Creator (Neatroff) /DOCINFO pdfmark\n");
 	out("%%%%Trailer\n");
 	out("done\n");

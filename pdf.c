@@ -733,7 +733,7 @@ void outlink(char *lnk, int hwid, int vwid)
 	if (lnk[0] == '#') {	/* internal links */
 		pdfout("  /A << /S /GoTo /D (%s) >>\n", lnk + 1);
 	} else {		/* external links */
-		pdfout("  /A << /S /URI /URI (%s) >>\n", lnk);
+		pdfout("  /A << /S /URI /URI %s >>\n", pdftext_static(lnk));
 	}
 	pdfout(">>\n");
 	obj_end();
@@ -786,7 +786,7 @@ void outmark(int n, char (*desc)[256], int *page, int *off, int *level)
 				cnt++;
 		obj_beg(objs[i]);
 		pdfout("<<\n");
-		pdfout("  /Title (%s)\n", desc[i]);
+		pdfout("  /Title %s\n", pdftext_static(desc[i]));
 		/* the parent field */
 		for (j = i - 1; j >= 0 && level[j] >= level[i]; j--)
 			;
@@ -996,9 +996,9 @@ void doctrailer(int pages)
 	info_id = obj_beg(0);
 	pdfout("<<\n");
 	if (pdf_title[0])
-		pdfout("  /Title (%s)\n", pdf_title);
+		pdfout("  /Title %s\n", pdftext_static(pdf_title));
 	if (pdf_author[0])
-		pdfout("  /Author (%s)\n", pdf_author);
+		pdfout("  /Author %s\n", pdftext_static(pdf_author));
 	pdfout("  /Creator (Neatroff)\n");
 	pdfout("  /Producer (Neatpost)\n");
 	pdfout(">>\n");

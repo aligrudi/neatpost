@@ -54,18 +54,16 @@ static void back(int c)
 
 static int utf8len(int c)
 {
-	if (c <= 0x7f)
+	if (~c & 0x80)		/* ASCII */
+		return c > 0;
+	if (~c & 0x40)		/* invalid UTF-8 */
 		return 1;
-	if (c >= 0xfc)
-		return 6;
-	if (c >= 0xf8)
-		return 5;
-	if (c >= 0xf0)
-		return 4;
-	if (c >= 0xe0)
-		return 3;
-	if (c >= 0xc0)
+	if (~c & 0x20)
 		return 2;
+	if (~c & 0x10)
+		return 3;
+	if (~c & 0x08)
+		return 4;
 	return 1;
 }
 
@@ -546,6 +544,69 @@ void *mextend(void *old, long oldsz, long newsz, int memsz)
 	memset(new + oldsz * memsz, 0, (newsz - oldsz) * memsz);
 	free(old);
 	return new;
+}
+
+/* the unicode codepoint of the given utf-8 character */
+static int utf8code(char *s)
+{
+	int c = (unsigned char) s[0];
+	if (!(c & 0x80))
+		return c;
+	if (!(c & 0x20))
+		return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+	if (!(c & 0x10))
+		return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+	if (!(c & 0x08))
+		return ((c & 0x07) << 18) | ((s[1] & 0x3f) << 12) | ((s[2] & 0x3f) << 6) | (s[3] & 0x3f);
+	return c;
+}
+
+static int pdftext_ascii(char *s)
+{
+	for (; *s; s++)
+		if (((unsigned char) *s) & 0x80 || *s == '(' || *s == ')')
+			return 0;
+	return 1;
+}
+
+/* encode s as pdf text string */
+static char *pdftext(char *s)
+{
+	struct sbuf *sb = sbuf_make();
+	if (pdftext_ascii(s)) {
+		sbuf_chr(sb, '(');
+		sbuf_str(sb, s);
+		sbuf_chr(sb, ')');
+		return sbuf_done(sb);
+	}
+	/* read utf-8 and write utf-16 */
+	sbuf_str(sb, "<FEFF");		/* unicode byte order marker */
+	while (*s) {
+		int l = utf8len((unsigned char) *s);
+		int c = utf8code(s);
+		if ((c >= 0 && c <= 0xd7ff) || (c >= 0xe000 && c <= 0xffff)) {
+			sbuf_printf(sb, "%02X%02X", c >> 8, c & 0xff);
+		}
+		if (c >= 0x010000 && c <= 0x10ffff) {
+			int c1 = 0xd800 + ((c - 0x10000) >> 10);
+			int c2 = 0xdc00 + ((c - 0x10000) & 0x3ff);
+			sbuf_printf(sb, "%02X%02X", c1 >> 8, c1 & 0xff);
+			sbuf_printf(sb, "%02X%02X", c2 >> 8, c2 & 0xff);
+		}
+		s += l;
+	}
+	sbuf_chr(sb, '>');
+	return sbuf_done(sb);
+}
+
+/* encode s as pdf text string; returns a static buffer */
+char *pdftext_static(char *s)
+{
+	static char buf[1024];
+	char *r = pdftext(s);
+	snprintf(buf, sizeof(buf), "%s", r);
+	free(r);
+	return buf;
 }
 
 static char *usage =
