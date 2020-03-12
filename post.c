@@ -582,7 +582,6 @@ static char *pdftext(char *s)
 	/* read utf-8 and write utf-16 */
 	sbuf_str(sb, "<FEFF");		/* unicode byte order marker */
 	while (*s) {
-		int l = utf8len((unsigned char) *s);
 		int c = utf8code(s);
 		if ((c >= 0 && c <= 0xd7ff) || (c >= 0xe000 && c <= 0xffff)) {
 			sbuf_printf(sb, "%02X%02X", c >> 8, c & 0xff);
@@ -593,7 +592,7 @@ static char *pdftext(char *s)
 			sbuf_printf(sb, "%02X%02X", c1 >> 8, c1 & 0xff);
 			sbuf_printf(sb, "%02X%02X", c2 >> 8, c2 & 0xff);
 		}
-		s += l;
+		s += utf8len((unsigned char) *s);
 	}
 	sbuf_chr(sb, '>');
 	return sbuf_done(sb);
