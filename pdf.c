@@ -12,6 +12,7 @@ static char pdf_title[256];	/* document title */
 static char pdf_author[256];	/* document author */
 static int pdf_width;		/* page width */
 static int pdf_height;		/* page height */
+static int pdf_lwid;		/* line width in thousands of ems */
 static int pdf_pages;		/* pages object id */
 static int pdf_root;		/* root object id */
 static int pdf_pos;		/* current pdf file offset */
@@ -866,9 +867,11 @@ void drawbeg(void)
 
 void drawend(int close, int fill)
 {
+	int lwid = pdf_lwid * o_s;
 	if (draw_path)
 		return;
 	draw_point = 0;
+	sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);	/* line width */
 	if (!fill)		/* stroking color */
 		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
 	if (fill)
@@ -960,6 +963,7 @@ void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 	pdfout("%%PDF-1.6\n\n");
 	pdf_width = (pagewidth * 72 + 127) / 254;
 	pdf_height = (pageheight * 72 + 127) / 254;
+	pdf_lwid = linewidth;
 }
 
 void doctrailer(int pages)
