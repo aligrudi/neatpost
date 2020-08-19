@@ -872,6 +872,7 @@ void drawend(int close, int fill)
 		return;
 	draw_point = 0;
 	sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);	/* line width */
+	sbuf_printf(pg, "2 J\n");	/* line cap style */
 	if (!fill)		/* stroking color */
 		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
 	if (fill)
