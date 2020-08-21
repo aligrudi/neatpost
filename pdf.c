@@ -835,7 +835,7 @@ void outinfo(char *kwd, char *val)
 
 void outset(char *var, char *val)
 {
-	if (!strcmp("linewid", var))
+	if (!strcmp("linewidth", var))
 		pdf_linewid = atoi(val);
 	if (!strcmp("linecap", var))
 		pdf_linecap = atoi(val);
