@@ -366,6 +366,10 @@ void outinfo(char *kwd, char *val)
 		snprintf(ps_title, sizeof(ps_title), "%s", val);
 }
 
+void outset(char *var, char *val)
+{
+}
+
 void docpagebeg(int n)
 {
 	out("%%%%Page: %d %d\n", n, n);

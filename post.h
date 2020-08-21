@@ -63,6 +63,7 @@ void outlink(char *dst, int hwid, int vwid);
 void outmark(int n, char (*desc)[256], int *page, int *off, int *level);
 void outname(int n, char (*desc)[64], int *page, int *off);
 void outinfo(char *kwd, char *val);
+void outset(char *var, char *val);
 void outpage(void);
 void outmnt(int f);
 void outgname(int g);

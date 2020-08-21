@@ -360,6 +360,12 @@ static void postps(void)
 			spec++;
 		outinfo(kwd, spec);
 	}
+	if (!strcmp("set", cmd)) {
+		char var[ILNLEN];
+		char val[ILNLEN];
+		if (sscanf(arg, "%s %s", var, val) == 2)
+			outset(var, val);
+	}
 	if (!strcmp("BeginObject", cmd))
 		drawmbeg(arg);
 	if (!strcmp("EndObject", cmd))

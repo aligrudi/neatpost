@@ -830,6 +830,10 @@ void outinfo(char *kwd, char *val)
 		snprintf(pdf_title, sizeof(pdf_title), "%s", val);
 }
 
+void outset(char *var, char *val)
+{
+}
+
 void outpage(void)
 {
 	o_v = 0;
