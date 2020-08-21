@@ -871,12 +871,13 @@ void drawend(int close, int fill)
 	if (draw_path)
 		return;
 	draw_point = 0;
+	fill = !fill ? 2 : fill;
 	sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);	/* line width */
-	sbuf_printf(pg, "2 J\n");	/* line cap style */
-	if (!fill)		/* stroking color */
+	sbuf_printf(pg, "1 J 1 j\n");	/* line cap and join styles */
+	if (fill & 2)			/* stroking color */
 		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
-	if (fill)
-		sbuf_printf(pg, "f\n");
+	if (fill & 1)
+		sbuf_printf(pg, (fill & 2) ? "b\n" : "f\n");
 	else
 		sbuf_printf(pg, close ? "s\n" : "S\n");
 	p_v = 0;
@@ -885,10 +886,14 @@ void drawend(int close, int fill)
 
 void drawmbeg(char *s)
 {
+	drawbeg();
+	draw_path = 1;
 }
 
 void drawmend(char *s)
 {
+	draw_path = 0;
+	drawend(1, ((!!strstr(s, "stroke")) << 1) + (!!strstr(s, "fill")));
 }
 
 void drawl(int h, int v)
