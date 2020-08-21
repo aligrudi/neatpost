@@ -12,7 +12,9 @@ static char pdf_title[256];	/* document title */
 static char pdf_author[256];	/* document author */
 static int pdf_width;		/* page width */
 static int pdf_height;		/* page height */
-static int pdf_lwid;		/* line width in thousands of ems */
+static int pdf_linewid;		/* line width in thousands of ems */
+static int pdf_linecap = 1;	/* line cap style: 0 (butt), 1 (round), 2 (projecting square) */
+static int pdf_linejoin = 1;	/* line join style: 0 (miter), 1 (round), 2 (bevel) */
 static int pdf_pages;		/* pages object id */
 static int pdf_root;		/* root object id */
 static int pdf_pos;		/* current pdf file offset */
@@ -30,6 +32,7 @@ static int p_h, p_v;		/* current output position */
 static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
+static int o_drawreset;		/* drawing variables should be reset */
 static char o_iset[1024];	/* fonts accesssed in this page */
 static int xobj[128];		/* page xobject object ids */
 static int xobj_n;		/* number of xobjects in this page */
@@ -832,6 +835,13 @@ void outinfo(char *kwd, char *val)
 
 void outset(char *var, char *val)
 {
+	if (!strcmp("linewid", var))
+		pdf_linewid = atoi(val);
+	if (!strcmp("linecap", var))
+		pdf_linecap = atoi(val);
+	if (!strcmp("linejoin", var))
+		pdf_linejoin = atoi(val);
+	o_drawreset = 1;
 }
 
 void outpage(void)
@@ -845,6 +855,7 @@ void outpage(void)
 	p_f = 0;
 	p_m = 0;
 	o_i = -1;
+	o_drawreset = 1;
 }
 
 void outmnt(int f)
@@ -871,14 +882,17 @@ void drawbeg(void)
 
 void drawend(int close, int fill)
 {
-	int lwid = pdf_lwid * o_s;
 	if (draw_path)
 		return;
 	draw_point = 0;
 	fill = !fill ? 2 : fill;
-	sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);	/* line width */
-	sbuf_printf(pg, "1 J 1 j\n");	/* line cap and join styles */
-	if (fill & 2)			/* stroking color */
+	if (o_drawreset) {
+		int lwid = pdf_linewid * o_s;
+		sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);
+		sbuf_printf(pg, "%d J %d j\n", pdf_linecap, pdf_linejoin);
+		o_drawreset = 0;
+	}
+	if (fill & 2)				/* stroking color */
 		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
 	if (fill & 1)
 		sbuf_printf(pg, (fill & 2) ? "b\n" : "f\n");
@@ -973,7 +987,7 @@ void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 	pdfout("%%PDF-1.6\n\n");
 	pdf_width = (pagewidth * 72 + 127) / 254;
 	pdf_height = (pageheight * 72 + 127) / 254;
-	pdf_lwid = linewidth;
+	pdf_linewid = linewidth;
 }
 
 void doctrailer(int pages)
