@@ -32,7 +32,6 @@ static int p_h, p_v;		/* current output position */
 static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
-static int o_drawreset;		/* drawing variables should be reset */
 static char o_iset[1024];	/* fonts accesssed in this page */
 static int xobj[128];		/* page xobject object ids */
 static int xobj_n;		/* number of xobjects in this page */
@@ -841,7 +840,6 @@ void outset(char *var, char *val)
 		pdf_linecap = atoi(val);
 	if (!strcmp("linejoin", var))
 		pdf_linejoin = atoi(val);
-	o_drawreset = 1;
 }
 
 void outpage(void)
@@ -855,7 +853,6 @@ void outpage(void)
 	p_f = 0;
 	p_m = 0;
 	o_i = -1;
-	o_drawreset = 1;
 }
 
 void outmnt(int f)
@@ -880,17 +877,24 @@ void drawbeg(void)
 	sbuf_printf(pg, "%s m\n", pdfpos(o_h, o_v));
 }
 
+static int l_page, l_size, l_wid, l_cap, l_join;	/* drawing line properties */
+
 void drawend(int close, int fill)
 {
 	if (draw_path)
 		return;
 	draw_point = 0;
 	fill = !fill ? 2 : fill;
-	if (o_drawreset) {
+	if (l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
+			l_cap != pdf_linecap || l_join != pdf_linejoin) {
 		int lwid = pdf_linewid * o_s;
 		sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);
 		sbuf_printf(pg, "%d J %d j\n", pdf_linecap, pdf_linejoin);
-		o_drawreset = 0;
+		l_page = page_n;
+		l_size = o_s;
+		l_wid = pdf_linewid;
+		l_cap = pdf_linecap;
+		l_join = pdf_linejoin;
 	}
 	if (fill & 2)				/* stroking color */
 		sbuf_printf(pg, "%s RG\n", pdfcolor(o_m));
