@@ -865,15 +865,10 @@ void outgname(int g)
 {
 }
 
-static int draw_path;	/* number of path segments */
-static int draw_point;	/* point was set for postscript newpath */
-
 void drawbeg(void)
 {
 	o_flush();
 	out_fontup();
-	if (draw_path)
-		return;
 	sbuf_printf(pg, "%s m\n", pdfpos(o_h, o_v));
 }
 
@@ -881,9 +876,6 @@ static int l_page, l_size, l_wid, l_cap, l_join;	/* drawing line properties */
 
 void drawend(int close, int fill)
 {
-	if (draw_path)
-		return;
-	draw_point = 0;
 	fill = !fill ? 2 : fill;
 	if (l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin) {
@@ -908,14 +900,10 @@ void drawend(int close, int fill)
 
 void drawmbeg(char *s)
 {
-	drawbeg();
-	draw_path = 1;
 }
 
 void drawmend(char *s)
 {
-	draw_path = 0;
-	drawend(1, ((!!strstr(s, "stroke")) << 1) + (!!strstr(s, "fill")));
 }
 
 void drawl(int h, int v)
