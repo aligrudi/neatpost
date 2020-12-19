@@ -361,9 +361,9 @@ static void postps(void)
 		outinfo(kwd, spec);
 	}
 	if (!strcmp("set", cmd)) {
-		char var[ILNLEN];
-		char val[ILNLEN];
-		if (sscanf(arg, "%s %s", var, val) == 2)
+		char var[128];
+		char val[128];
+		if (sscanf(arg, "%128s %128s", var, val) == 2)
 			outset(var, val);
 	}
 	if (!strcmp("BeginObject", cmd))

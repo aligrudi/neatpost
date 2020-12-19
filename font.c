@@ -64,16 +64,16 @@ static void tilleol(FILE *fin, char *s)
 static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 {
 	struct glyph *g;
-	char tok[ILNLEN];
-	char name[ILNLEN];
-	char id[ILNLEN];
+	char tok[128];
+	char name[GNLEN];
+	char id[GNLEN];
 	int type;
-	if (fscanf(fin, "%s %s", name, tok) != 2)
+	if (fscanf(fin, GNFMT " %128s", name, tok) != 2)
 		return 1;
 	if (!strcmp("---", name))
 		sprintf(name, "c%04d", *n);
 	if (strcmp("\"", tok)) {
-		if (fscanf(fin, "%d %s", &type, id) != 2)
+		if (fscanf(fin, "%d " GNFMT, &type, id) != 2)
 			return 1;
 		*gid = font_glyphput(fn, id, name, type);
 		g = &fn->gl[*gid];
@@ -102,7 +102,7 @@ struct font *font_open(char *path)
 	struct font *fn;
 	int ch_g = -1;		/* last glyph in the charset */
 	int ch_n = 0;			/* number of glyphs in the charset */
-	char tok[ILNLEN];
+	char tok[128];
 	FILE *fin;
 	fin = fopen(path, "r");
 	if (!fin)
@@ -117,7 +117,7 @@ struct font *font_open(char *path)
 	fn->gl_dict = dict_make(-1, 1, 0);
 	fn->ch_dict = dict_make(-1, 1, 0);
 	fn->ch_map = dict_make(-1, 1, 0);
-	while (fscanf(fin, "%s", tok) == 1) {
+	while (fscanf(fin, "%128s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
 		} else if (!strcmp("spacewidth", tok)) {
