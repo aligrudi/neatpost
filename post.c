@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include "post.h"
 
@@ -513,7 +514,10 @@ static void setpagesize(char *s)
 			return;
 		}
 	}
-	/* custom paper size in mm, like 2100x2970 for a4 */
+	/*
+             custom paper size in tenths of mm.
+             example:  2100x2970 for a4.
+        */
 	if (isdigit(s[0]) && strchr(s, 'x')) {
 		ps_pagewidth = atoi(s);
 		ps_pageheight = atoi(strchr(s, 'x') + 1);
@@ -534,11 +538,19 @@ static void setpagesize(char *s)
 		d1 = 9170;
 		d2 = 12970;
 	}
+
+
 	n = s[1] - '0';
 	ps_pagewidth = ((n & 1) ? d2 : d1) >> ((n + 1) >> 1);
 	ps_pageheight = ((n & 1) ? d1 : d2) >> (n >> 1);
 	ps_pagewidth -= ps_pagewidth % 10;
 	ps_pageheight -= ps_pageheight % 10;
+}
+
+static void setlandscape(void) {
+   int t = ps_pagewidth;
+   ps_pagewidth = ps_pageheight;
+   ps_pageheight = t;
 }
 
 void *mextend(void *old, long oldsz, long newsz, int memsz)
@@ -619,27 +631,45 @@ static char *usage =
 	"  -p size \tset paper size (letter); e.g., a4, 2100x2970\n"
 	"  -t title\tspecify document title\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n"
+        "  -l      \tlandscape\n"
 	"  -n      \talways draw glyphs by name (ps glyphshow)\n";
 
 int main(int argc, char *argv[])
 {
-	int i;
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-' && argv[i][1] == 'F') {
-			strcpy(postdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'p') {
-			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
-			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'n') {
-			outgname(1);
-		} else if (argv[i][0] == '-' && argv[i][1] == 't') {
-			ps_title = argv[i][2] ? argv[i] + 2 : argv[++i];
-		} else {
-			printf("%s", usage);
-			return 0;
-		}
-	}
+        int ch;
+        int landscape = 0;
+
+        while ((ch = getopt(argc,argv,"F:p:t:w:nl")) != -1) {
+            switch (ch) {
+            case 'F':
+                strcpy(postdir, optarg);
+                break;
+            case 'p':
+                setpagesize(optarg);
+                break;
+            case 't':
+                ps_title = optarg;
+                break;
+            case 'n':
+                outgname(1);
+                break;
+            case 'w':
+                ps_linewidth = atoi(optarg);
+                break;
+            case 'l':
+                landscape = 1;
+                break;
+            case '?':
+            case 'h':
+            default:
+                printf("%s", usage);
+                return EXIT_SUCCESS;
+            }
+        }
+
+        if(landscape)
+            setlandscape();
+
 	post();
 	doctrailer(o_pages);
 	dev_close();
@@ -650,5 +680,5 @@ int main(int argc, char *argv[])
 	free(name_desc);
 	free(name_page);
 	free(name_offset);
-	return 0;
+	return EXIT_SUCCESS;
 }
