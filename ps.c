@@ -304,6 +304,10 @@ void outeps(char *eps, int hwid, int vwid)
 
 void outpdf(char *pdf, int hwid, int vwid)
 {
+	/* not used */
+	(void) pdf;
+	(void) hwid;
+	(void) vwid;
 }
 
 void outlink(char *lnk, int hwid, int vwid)
@@ -368,6 +372,9 @@ void outinfo(char *kwd, char *val)
 
 void outset(char *var, char *val)
 {
+	/* not used */
+	(void) var;
+	(void) val;
 }
 
 void docpagebeg(int n)
@@ -380,6 +387,8 @@ void docpagebeg(int n)
 
 void docpageend(int n)
 {
+	/* not used */
+	(void) n;
 	out("cleartomark\n");
 	out("showpage\n");
 	out("saveobj restore\n");

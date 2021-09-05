@@ -98,6 +98,8 @@ static void obj_end(void)
 
 void out(char *s, ...)
 {
+	/* not used */
+	(void) s;
 }
 
 /* the length of the clear-text, encrypted, and fixed-content portions */
@@ -491,17 +493,23 @@ void outcolor(int c)
 
 void outrotate(int deg)
 {
+	/* not used */
+	(void) deg;
 }
 
 void outeps(char *eps, int hwid, int vwid)
 {
+	/* not used */
+	(void) eps;
+	(void) hwid;
+	(void) vwid;
 }
 
 /* return a copy of a PDF object; returns a static buffer */
 static char *pdf_copy(char *pdf, int len, int pos)
 {
 	static char buf[1 << 12];
-	int datlen;
+	size_t datlen;
 	pos += pdf_ws(pdf, len, pos);
 	datlen = pdf_len(pdf, len, pos);
 	if (datlen > sizeof(buf) - 1)
@@ -590,7 +598,8 @@ static void pdf_rescopy(char *pdf, int len, int pos, struct sbuf *sb)
 {
 	char *res_fields[] = {"/ProcSet", "/ExtGState", "/ColorSpace",
 		"/Pattern", "/Shading", "/Properties", "/Font", "/XObject"};
-	int res, i;
+	int res;
+	size_t i;
 	sbuf_printf(sb, "  /Resources <<\n");
 	for (i = 0; i < LEN(res_fields); i++) {
 		if ((res = pdf_dval_val(pdf, len, pos, res_fields[i])) >= 0) {
@@ -638,7 +647,7 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 	int dim[4];
 	int hzoom = 100, vzoom = 100;
 	struct sbuf *sb;
-	int i;
+	size_t i;
 	if (xobj_n == LEN(xobj))
 		return -1;
 	if ((trailer = pdf_trailer(pdf, len)) < 0)
@@ -863,6 +872,8 @@ void outmnt(int f)
 
 void outgname(int g)
 {
+	/* not used */
+	(void) g;
 }
 
 void drawbeg(void)
@@ -900,10 +911,14 @@ void drawend(int close, int fill)
 
 void drawmbeg(char *s)
 {
+	/* not used */
+	(void) s;
 }
 
 void drawmend(char *s)
 {
+	/* not used */
+	(void) s;
 }
 
 void drawl(int h, int v)
@@ -965,6 +980,9 @@ void drawa(int h1, int v1, int h2, int v2)
 /* draw an spline */
 void draws(int h1, int v1, int h2, int v2)
 {
+	/* not used */
+	(void) h2;
+	(void) v2;
 	outrel(h1, v1);
 	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
@@ -987,6 +1005,8 @@ void doctrailer(int pages)
 	int i;
 	int xref_off;
 	int info_id;
+	/* not used */
+	(void) pages;
 	/* pdf pages object */
 	obj_beg(pdf_pages);
 	pdfout("<<\n");
@@ -1046,6 +1066,8 @@ void doctrailer(int pages)
 
 void docpagebeg(int n)
 {
+	/* not used */
+	(void) n;
 	pg = sbuf_make();
 	sbuf_printf(pg, "BT\n");
 }
@@ -1054,6 +1076,8 @@ void docpageend(int n)
 {
 	int cont_id;
 	int i;
+	/* not used */
+	(void) n;
 	o_flush();
 	sbuf_printf(pg, "ET\n");
 	/* page contents */
