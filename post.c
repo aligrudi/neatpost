@@ -514,10 +514,7 @@ static void setpagesize(char *s)
 			return;
 		}
 	}
-	/*
-             custom paper size in tenths of mm.
-             example:  2100x2970 for a4.
-        */
+	/* custom paper size in tenths of mm; example:  2100x2970 for a4. */
 	if (isdigit(s[0]) && strchr(s, 'x')) {
 		ps_pagewidth = atoi(s);
 		ps_pageheight = atoi(strchr(s, 'x') + 1);
@@ -631,45 +628,36 @@ static char *usage =
 	"  -p size \tset paper size (letter); e.g., a4, 2100x2970\n"
 	"  -t title\tspecify document title\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n"
-        "  -l      \tlandscape\n"
+	"  -l      \tlandscape mode\n"
 	"  -n      \talways draw glyphs by name (ps glyphshow)\n";
 
 int main(int argc, char *argv[])
 {
-        int ch;
-        int landscape = 0;
-
-        while ((ch = getopt(argc,argv,"F:p:t:w:nl")) != -1) {
-            switch (ch) {
-            case 'F':
-                strcpy(postdir, optarg);
-                break;
-            case 'p':
-                setpagesize(optarg);
-                break;
-            case 't':
-                ps_title = optarg;
-                break;
-            case 'n':
-                outgname(1);
-                break;
-            case 'w':
-                ps_linewidth = atoi(optarg);
-                break;
-            case 'l':
-                landscape = 1;
-                break;
-            case '?':
-            case 'h':
-            default:
-                printf("%s", usage);
-                return EXIT_SUCCESS;
-            }
-        }
-
-        if(landscape)
-            setlandscape();
-
+	int i;
+	int landscape = 0;
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == 'F') {
+			strcpy(postdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'p') {
+			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
+			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
+		} else if (argv[i][0] == '-' && argv[i][1] == 'n') {
+			outgname(1);
+		} else if (argv[i][0] == '-' && argv[i][1] == 't') {
+			ps_title = argv[i][2] ? argv[i] + 2 : argv[++i];
+		} else if (argv[i][0] == '-' && argv[i][1] == 'l') {
+			landscape = 1;
+		} else {
+			printf("%s", usage);
+			return 0;
+		}
+	}
+	if (landscape) {
+		int t = ps_pagewidth;
+		ps_pagewidth = ps_pageheight;
+		ps_pageheight = t;
+	}
 	post();
 	doctrailer(o_pages);
 	dev_close();
