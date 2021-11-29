@@ -170,7 +170,7 @@ int font_swid(struct font *fn, int sz)
 
 char *font_name(struct font *fn)
 {
-	return fn->fontname;
+	return fn->fontname[0] ? fn->fontname : fn->name;
 }
 
 char *font_path(struct font *fn)
