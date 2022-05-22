@@ -640,8 +640,8 @@ int main(int argc, char *argv[])
 		} else if (argv[i][0] == '-' && argv[i][1] == 'l') {
 			landscape = 1;
 		} else {
-			printf("%s", usage);
-			return 0;
+			fprintf(stderr, "%s", usage);
+			return 1;
 		}
 	}
 	if (landscape) {
