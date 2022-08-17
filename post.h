@@ -3,7 +3,7 @@
 #define NFONTS		1024	/* number of fonts */
 #define FNLEN		64	/* font name length */
 #define GNLEN		32	/* glyph name length */
-#define GNFMT		"%32s"	/* glyph name scanf format */
+#define GNFMT		"%31s"	/* glyph name scanf format */
 #define ILNLEN		1000	/* line limit of input files */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
