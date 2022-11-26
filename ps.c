@@ -266,10 +266,15 @@ void outeps(char *eps, int hwid, int vwid)
 	int nbb;
 	if (!(filp = fopen(eps, "r")))
 		return;
-	if (!fgets(buf, sizeof(buf), filp) ||
-			(strcmp(buf, "%!PS-Adobe-2.0 EPSF-1.2\n") &&
-			strcmp(buf, "%!PS-Adobe-2.0 EPSF-2.0\n") &&
-			strcmp(buf, "%!PS-Adobe-3.0 EPSF-3.0\n"))) {
+	if (!fgets(buf, sizeof(buf), filp)) {
+		fprintf(stderr, "warning: file %s is empty\n", eps);
+		fclose(filp);
+		return;
+	}
+	if (strncmp(buf, "%!PS-Adobe-2.0 EPSF-1.2", 23) &&
+			strncmp(buf, "%!PS-Adobe-2.0 EPSF-2.0", 23) &&
+			strncmp(buf, "%!PS-Adobe-3.0 EPSF-3.0", 23)) {
+		fprintf(stderr, "warning: file %s has unsupported EPSF version %.23s\n", eps, buf);
 		fclose(filp);
 		return;
 	}
