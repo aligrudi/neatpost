@@ -263,7 +263,7 @@ void outeps(char *eps, int hwid, int vwid)
 	char buf[1 << 12];
 	int llx, lly, urx, ury;
 	FILE *filp;
-	int nbb;
+	int nbb, ver;
 	if (!(filp = fopen(eps, "r")))
 		return;
 	if (!fgets(buf, sizeof(buf), filp)) {
@@ -271,10 +271,8 @@ void outeps(char *eps, int hwid, int vwid)
 		fclose(filp);
 		return;
 	}
-	if (strncmp(buf, "%!PS-Adobe-2.0 EPSF-1.2", 23) &&
-			strncmp(buf, "%!PS-Adobe-2.0 EPSF-2.0", 23) &&
-			strncmp(buf, "%!PS-Adobe-3.0 EPSF-3.0", 23)) {
-		fprintf(stderr, "warning: unsupported EPSF version in %s\n", eps);
+	if (sscanf(buf, "%%!PS-Adobe-%d.%d EPSF-%d.%d", &ver, &ver, &ver, &ver) != 4) {
+		fprintf(stderr, "warning: unsupported EPSF header in %s\n", eps);
 		fclose(filp);
 		return;
 	}
