@@ -626,6 +626,8 @@ int main(int argc, char *argv[])
 {
 	int i;
 	int landscape = 0;
+	if (getenv("NEATROFF_F") != NULL)
+		snprintf(postdir, sizeof(postdir), "%s", getenv("NEATROFF_F"));
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == 'F') {
 			strcpy(postdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
