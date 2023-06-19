@@ -159,6 +159,8 @@ void font_close(struct font *fn)
 /* return width w for the given font and size */
 int font_wid(struct font *fn, int sz, int w)
 {
+	/* not used */
+	(void) fn;
 	return (w * sz + dev_uwid / 2) / dev_uwid;
 }
 

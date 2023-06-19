@@ -347,7 +347,7 @@ static void postps(void)
 	if (!strcmp("info", cmd)) {
 		char *spec = arg;
 		char kwd[128];
-		int i = 0;
+		size_t i = 0;
 		while (*spec == ' ')
 			spec++;
 		while (*spec && *spec != ' ') {
@@ -504,7 +504,8 @@ static struct paper {
 
 static void setpagesize(char *s)
 {
-	int d1, d2, n, i;
+	int d1, d2, n;
+	size_t i;
 	/* predefined paper sizes */
 	for (i = 0; i < LEN(papers); i++) {
 		if (!strcmp(papers[i].name, s)) {

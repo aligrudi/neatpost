@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.0)
+project(neatpost C)
+set(FDIR "${CMAKE_INSTALL_PREFIX}/share/neatroff/font" CACHE PATH "Default font directory")
+add_compile_definitions("TROFFFDIR=\"${FDIR}\"")
+add_executable(post post.c ps.c font.c dev.c clr.c dict.c iset.c sbuf.c)
+add_executable(pdf post.c pdf.c pdfext.c font.c dev.c clr.c dict.c iset.c sbuf.c)
+install(TARGETS post pdf)

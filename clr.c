@@ -42,12 +42,12 @@ static int clrcomp(char *s, int len)
 
 int clr_get(char *s)
 {
-	int i;
+	size_t i;
 	if (s[0] == '#' && strlen(s) == 7)
 		return CLR_RGB(clrcomp(s + 1, 2), clrcomp(s + 3, 2), clrcomp(s + 5, 2));
 	if (s[0] == '#' && strlen(s) == 4)
 		return CLR_RGB(clrcomp(s + 1, 1), clrcomp(s + 2, 1), clrcomp(s + 3, 1));
-	if (isdigit(s[0]) && atoi(s) >= 0 && atoi(s) < LEN(colors))
+	if (isdigit(s[0]) && atoi(s) >= 0 && (size_t) atoi(s) < LEN(colors))
 		return colors[atoi(s)].value;
 	for (i = 0; i < LEN(colors); i++)
 		if (!strcmp(colors[i].name, s))
