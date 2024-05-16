@@ -965,8 +965,21 @@ void drawa(int h1, int v1, int h2, int v2)
 /* draw an spline */
 void draws(int h1, int v1, int h2, int v2)
 {
+	int x0, x1, x2;
+	int y0, y1, y2;
+
+	x0 = o_h;
+	y0 = o_v;
+	x1 = x0 + h1;
+	y1 = y0 + v1;
+	x2 = x1 + h2;
+	y2 = y1 + v2;
+
+	sbuf_printf(pg, "%s ", pdfpos((x0+5*x1)/6, (y0+5*y1)/6));
+	sbuf_printf(pg, "%s ", pdfpos((x2+5*x1)/6, (y2+5*y1)/6));
+	sbuf_printf(pg, "%s c\n", pdfpos((x1+x2)/2, (y1+y2)/2));
+
 	outrel(h1, v1);
-	sbuf_printf(pg, "%s l\n", pdfpos(o_h, o_v));
 }
 
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
