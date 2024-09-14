@@ -56,7 +56,7 @@ void outrel(int h, int v);
 void outfont(int f);
 void outsize(int s);
 void outcolor(int c);
-void outrotate(int deg);
+void outrotate(double deg);
 void outeps(char *eps, int hwid, int vwid);
 void outpdf(char *pdf, int hwid, int vwid);
 void outlink(char *dst, int hwid, int vwid);
