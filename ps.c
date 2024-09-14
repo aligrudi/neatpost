@@ -8,6 +8,7 @@
 static char ps_title[256];	/* document title */
 static char ps_author[256];	/* document author */
 static int ps_height;		/* document height in basic units */
+static int page_n = 0;		/* number of pages */
 static int o_f, o_s, o_m;	/* font and size */
 static int o_h, o_v;		/* current user position */
 static int p_f, p_s, p_m;	/* output postscript font */
@@ -15,6 +16,10 @@ static int o_qtype;		/* queued character type */
 static int o_qv, o_qh, o_qend;	/* queued character position */
 static int o_rh, o_rv, o_rdeg;	/* previous rotation position and degree */
 static int o_gname;		/* use glyphshow for all glyphs */
+
+static int ps_linewid;		/* line width in basic units */
+static int ps_linecap = 1;	/* line cap style: 0 (butt), 1 (round), 2 (projecting square) */
+static int ps_linejoin = 1;	/* line join style: 0 (miter), 1 (round), 2 (bevel) */
 
 static char o_fonts[FNLEN * NFONTS] = " ";
 
@@ -200,10 +205,24 @@ void drawmend(char *s)
 	outf("%s grestore\n", s);
 }
 
+static int l_page, l_size, l_wid, l_cap, l_join;	/* drawing line properties */
+
 void drawbeg(void)
 {
 	o_flush();
 	out_fontup(o_f);
+	if (l_page != page_n || l_size != o_s || l_wid != ps_linewid ||
+			l_cap != ps_linecap || l_join != ps_linejoin) {
+		outf("%d setlinewidth ", ps_linewid);
+		outf("%d setlinecap ", ps_linecap);
+		outf("%d setlinejoin\n", ps_linejoin);
+		o_flush();
+		l_page = page_n;
+		l_size = o_s;
+		l_wid = ps_linewid;
+		l_cap = ps_linecap;
+		l_join = ps_linejoin;
+	}
 	if (draw_path)
 		return;
 	outf("newpath ");
@@ -256,6 +275,11 @@ void draws(int h1, int v1, int h2, int v2)
 	outf("%d %d %d %d %d %d draws ", o_h, o_v, o_h + h1, o_v + v1,
 		o_h + h1 + h2, o_v + v1 + v2);
 	outrel(h1, v1);
+}
+
+void drawt(int w)
+{
+	ps_linewid = w;
 }
 
 void outeps(char *eps, int hwid, int vwid)
@@ -371,10 +395,17 @@ void outinfo(char *kwd, char *val)
 
 void outset(char *var, char *val)
 {
+	if (!strcmp("linewidth", var))
+		ps_linewid = atoi(val);
+	if (!strcmp("linecap", var))
+		ps_linecap = atoi(val);
+	if (!strcmp("linejoin", var))
+		ps_linejoin = atoi(val);
 }
 
 void docpagebeg(int n)
 {
+	page_n = n;
 	out("%%%%Page: %d %d\n", n, n);
 	out("/saveobj save def\n");
 	out("mark\n");
@@ -506,6 +537,7 @@ static char *prolog =
 /* pagewidth and pageheight are in tenths of a millimetre */
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
 {
+	ps_linewid = linewidth * dev_res / 7200;
 	ps_height = pageheight * dev_res / 254;
 	out("%%!PS-Adobe-2.0\n");
 	out("%%%%Version: 1.0\n");

@@ -77,6 +77,7 @@ void drawc(int c);
 void drawe(int h, int v);
 void drawa(int h1, int v1, int h2, int v2);
 void draws(int h1, int v1, int h2, int v2);
+void drawt(int w);
 
 void docheader(char *title, int pagewidth, int pageheight, int linewidth);
 void doctrailer(int pages);
