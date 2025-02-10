@@ -1,7 +1,7 @@
 /*
  * NEATPOST: NEATROFF'S POSTSCRIPT/PDF POSTPROCESSOR
  *
- * Copyright (C) 2013-2020 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2013-2025 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -612,6 +612,15 @@ char *pdftext_static(char *s)
 	return buf;
 }
 
+static void cmdset(char *arg)
+{
+	char *eq = strchr(arg, '=');
+	if (eq != NULL) {
+		*eq = '\0';
+		outset(arg, eq + 1);
+	}
+}
+
 static char *usage =
 	"Usage: neatpost [options] <input >output\n"
 	"Options:\n"
@@ -620,7 +629,8 @@ static char *usage =
 	"  -t title\tspecify document title\n"
 	"  -w lwid \tdrawing line thickness in thousandths of an em (40)\n"
 	"  -l      \tlandscape mode\n"
-	"  -n      \talways draw glyphs by name (ps glyphshow)\n";
+	"  -n      \talways draw glyphs by name (ps glyphshow)\n"
+	"  -d x=v  \tset device-specific variables\n";
 
 int main(int argc, char *argv[])
 {
@@ -628,20 +638,30 @@ int main(int argc, char *argv[])
 	int landscape = 0;
 	if (getenv("NEATROFF_F") != NULL)
 		snprintf(postdir, sizeof(postdir), "%s", getenv("NEATROFF_F"));
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-' && argv[i][1] == 'F') {
+	for (i = 1; i < argc && argv[i][0] == '-'; i++) {
+		switch (argv[i][1]) {
+		case 'F':
 			strcpy(postdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'p') {
+			break;
+		case 'p':
 			setpagesize(argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'w') {
+			break;
+		case 'w':
 			ps_linewidth = atoi(argv[i][2] ? argv[i] + 2 : argv[++i]);
-		} else if (argv[i][0] == '-' && argv[i][1] == 'n') {
+			break;
+		case 'n':
 			outgname(1);
-		} else if (argv[i][0] == '-' && argv[i][1] == 't') {
+			break;
+		case 't':
 			ps_title = argv[i][2] ? argv[i] + 2 : argv[++i];
-		} else if (argv[i][0] == '-' && argv[i][1] == 'l') {
+			break;
+		case 'l':
 			landscape = 1;
-		} else {
+			break;
+		case 'd':
+			cmdset(argv[i][2] ? argv[i] + 2 : argv[++i]);
+			break;
+		default:
 			fprintf(stderr, "%s", usage);
 			return 1;
 		}
