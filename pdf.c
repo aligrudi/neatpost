@@ -1,6 +1,7 @@
 /* PDF post-processor functions */
 #include <ctype.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,8 @@ static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
 static char o_iset[1024];	/* fonts accesssed in this page */
+static int o_rh, o_rv;
+static double o_rdeg;		/* previous rotation position and degree */
 static int xobj[128];		/* page xobject object ids */
 static int xobj_n;		/* number of xobjects in this page */
 static int ann[128];		/* page annotations */
@@ -489,8 +492,27 @@ void outcolor(int c)
 	o_m = c;
 }
 
-void outrotate(int deg)
+void outrotate(double deg)
 {
+	o_flush();
+	out_fontup();
+
+	double x, y;
+	if (o_rdeg) {
+		x = cos(-o_rdeg*M_PI/180);
+		y = sin(-o_rdeg*M_PI/180);
+		sbuf_printf(pg, "1 0 0 1 %d %d cm\n", o_rh*72/dev_res, pdf_height-o_rv*72/dev_res);
+		sbuf_printf(pg, "%f %f %f %f 0 0 cm\n", x, y, -y, x);
+		sbuf_printf(pg, "1 0 0 1 %d %d cm\n", -o_rh*72/dev_res, -pdf_height+o_rv*72/dev_res);
+	}
+	o_rdeg = deg;
+	o_rh = o_h;
+	o_rv = o_v;
+	x = cos(o_rdeg*M_PI/180);
+	y = sin(o_rdeg*M_PI/180);
+	sbuf_printf(pg, "1 0 0 1 %d %d cm\n", o_rh*72/dev_res, pdf_height-o_rv*72/dev_res);
+	sbuf_printf(pg, "%f %f %f %f 0 0 cm\n", x, y, -y, x);
+	sbuf_printf(pg, "1 0 0 1 %d %d cm\n", -o_rh*72/dev_res, -pdf_height+o_rv*72/dev_res);
 }
 
 void outeps(char *eps, int hwid, int vwid)
@@ -853,6 +875,7 @@ void outpage(void)
 	p_f = 0;
 	p_m = 0;
 	o_i = -1;
+	o_rdeg = 0;
 }
 
 void outmnt(int f)
@@ -1057,6 +1080,7 @@ void doctrailer(int pages)
 void docpagebeg(int n)
 {
 	pg = sbuf_make();
+	sbuf_printf(pg, "q\n");
 	sbuf_printf(pg, "BT\n");
 }
 
@@ -1066,6 +1090,7 @@ void docpageend(int n)
 	int i;
 	o_flush();
 	sbuf_printf(pg, "ET\n");
+	sbuf_printf(pg, "Q\n");
 	/* page contents */
 	cont_id = obj_beg(0);
 	pdfout("<<\n");
@@ -1083,6 +1108,7 @@ void docpageend(int n)
 	page_id[page_n++] = obj_beg(0);
 	pdfout("<<\n");
 	pdfout("  /Type /Page\n");
+	pdfout("  /Rotate %f\n", o_rdeg);
 	pdfout("  /Parent %d 0 R\n", pdf_pages);
 	pdfout("  /Resources <<\n");
 	pdfout("    /Font <<");
