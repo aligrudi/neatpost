@@ -922,10 +922,10 @@ static void drawquad(int ch, int cv)
 	long y3 = y0 + cv * 1000 / 2;
 	long x1 = x0;
 	long y1 = y0 + cv * b / 1000 / 2;
-	long x2 = x0 + ch * b / 1000 / 2;
+	long x2 = x3 + ch * b / 1000 / 2;
 	long y2 = y3;
 	if (ch * cv < 0) {
-		x1 = x3 - ch * b / 1000 / 2;
+		x1 = x0 - ch * b / 1000 / 2;
 		y1 = y0;
 		x2 = x3;
 		y2 = y3 - cv * b / 1000 / 2;
