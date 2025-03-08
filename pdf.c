@@ -879,8 +879,8 @@ void drawend(int close, int fill)
 	fill = !fill ? 2 : fill;
 	if (l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin) {
-		int lwid = pdf_linewid * o_s;
-		sbuf_printf(pg, "%d.%03d w\n", lwid / 1000, lwid % 1000);
+		int lwid = pdf_linewid;
+		sbuf_printf(pg, "%d.%02d w\n", lwid / 100, lwid % 100);
 		sbuf_printf(pg, "%d J %d j\n", pdf_linecap, pdf_linejoin);
 		l_page = page_n;
 		l_size = o_s;
@@ -977,6 +977,11 @@ void draws(int h1, int v1, int h2, int v2)
 	sbuf_printf(pg, "%s c\n", pdfpos((x1 + x2) / 2, (y1 + y2) / 2));
 
 	outrel(h1, v1);
+}
+
+void drawt(int w)
+{
+	pdf_linewid = w * 7200 / dev_res;
 }
 
 void docheader(char *title, int pagewidth, int pageheight, int linewidth)
