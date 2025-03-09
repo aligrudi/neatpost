@@ -163,7 +163,7 @@ static void pfont_write(struct pfont *ps)
 	pdfout("  /LastChar %d\n", ps->gend % 256);
 	pdfout("  /Widths [");
 	for (i = ps->gbeg; i <= ps->gend; i++)
-		pdfout(" %d", (long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
+		pdfout(" %d", (long long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
 	pdfout(" ]\n");
 	pdfout("  /FontDescriptor %d 0 R\n", ps->des);
 	pdfout("  /Encoding %d 0 R\n", enc_obj);
@@ -205,7 +205,7 @@ static void pfont_writecid(struct pfont *ps)
 		gcnt++;
 	pdfout("  /W [ %d [", ps->gbeg);
 	for (i = ps->gbeg; i <= ps->gend; i++)
-		pdfout(" %d", (long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
+		pdfout(" %d", (long long) font_glget(fn, i)->wid * 100 * 72 / dev_res);
 	pdfout(" ] ]\n");
 	pdfout(">>\n");
 	obj_end();
@@ -358,8 +358,8 @@ static int o_loadfont(struct glyph *g)
 static char *pdfpos00(int uh, int uv)
 {
 	static char buf[64];
-	int h = (long) uh * 72 / dev_res;
-	int v = (long) pdf_height * 100 - (long) uv * 72 / dev_res;
+	int h = (long long) uh * 72 / dev_res;
+	int v = (long long) pdf_height * 100 - (long long) uv * 72 / dev_res;
 	sprintf(buf, "%s%d.%02d %s%d.%02d",
 		h < 0 ? "-" : "", abs(h) / 100, abs(h) % 100,
 		v < 0 ? "-" : "", abs(v) / 100, abs(v) % 100);
@@ -376,7 +376,7 @@ static char *pdfpos(int uh, int uv)
 static char *pdfunit(int uh, int sz)
 {
 	static char buf[64];
-	int h = (long) uh * 1000 * 72 / sz / dev_res;
+	int h = (long long) uh * 1000 * 72 / sz / dev_res;
 	sprintf(buf, "%s%d", h < 0 ? "-" : "", abs(h));
 	return buf;
 }
@@ -664,9 +664,9 @@ static int pdfext(char *pdf, int len, int hwid, int vwid)
 		bbox = pdf_dval_val(pdf, len, pages, "/MediaBox");
 	if (bbox >= 0 && !pdfbbox100(pdf, len, bbox, dim)) {
 		if (hwid > 0)
-			hzoom = (long) hwid * (100 * 7200 / dev_res) / (dim[2] - dim[0]);
+			hzoom = (long long) hwid * (100 * 7200 / dev_res) / (dim[2] - dim[0]);
 		if (vwid > 0)
-			vzoom = (long) vwid * (100 * 7200 / dev_res) / (dim[3] - dim[1]);
+			vzoom = (long long) vwid * (100 * 7200 / dev_res) / (dim[3] - dim[1]);
 		if (vwid <= 0)
 			vzoom = hzoom;
 		if (hwid <= 0)
@@ -915,16 +915,16 @@ void drawl(int h, int v)
 /* draw circle/ellipse quadrant */
 static void drawquad(int ch, int cv)
 {
-	long b = 551915;
-	long x0 = o_h * 1000;
-	long y0 = o_v * 1000;
-	long x3 = x0 + ch * 1000 / 2;
-	long y3 = y0 + cv * 1000 / 2;
-	long x1 = x0;
-	long y1 = y0 + cv * b / 1000 / 2;
-	long x2 = x3 - ch * b / 1000 / 2;
-	long y2 = y3;
-	if (ch * cv < 0) {
+	long long b = 551915;
+	long long x0 = o_h * 1000;
+	long long y0 = o_v * 1000;
+	long long x3 = x0 + ch * 1000 / 2;
+	long long y3 = y0 + cv * 1000 / 2;
+	long long x1 = x0;
+	long long y1 = y0 + cv * b / 1000 / 2;
+	long long x2 = x3 - ch * b / 1000 / 2;
+	long long y2 = y3;
+	if ((ch > 0 && cv < 0) || (ch < 0 && cv > 0)) {
 		x1 = x0 + ch * b / 1000 / 2;
 		y1 = y0;
 		x2 = x3;
