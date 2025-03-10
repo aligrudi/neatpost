@@ -289,7 +289,7 @@ static void postps(void)
 	if (!strcmp("PS", cmd) || !strcmp("ps", cmd))
 		out("%s\n", arg);
 	if (!strcmp("rotate", cmd))
-		outrotate(atoi(arg));
+		outrotate(atof(arg));
 	if (!strcmp("eps", cmd) || !strcmp("pdf", cmd)) {
 		char path[1 << 12];
 		int hwid, vwid, nspec;
