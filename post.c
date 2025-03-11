@@ -232,6 +232,9 @@ static void postdraw(void)
 	int c = next();
 	drawbeg();
 	switch (tolower(c)) {
+	case 't':
+		drawt(nextnum());
+		break;
 	case 'l':
 		h1 = nextnum();
 		v1 = nextnum();
