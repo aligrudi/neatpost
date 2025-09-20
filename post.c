@@ -363,7 +363,7 @@ static void postps(void)
 	if (!strcmp("set", cmd)) {
 		char var[128];
 		char val[128];
-		if (sscanf(arg, "%128s %128s", var, val) == 2)
+		if (sscanf(arg, "%127s %127s", var, val) == 2)
 			outset(var, val);
 	}
 	if (!strcmp("BeginObject", cmd))
