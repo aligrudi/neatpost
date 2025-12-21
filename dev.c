@@ -9,7 +9,7 @@ static char dev_dev[PATHLEN];	/* output device name */
 int dev_res;			/* device resolution */
 int dev_uwid;			/* device unitwidth */
 int dev_hor;			/* minimum horizontal movement */
-int dev_ver;			/* minimum vertical movement */
+int dev_vert;			/* minimum vertical movement */
 
 /* mounted fonts */
 static char fn_name[NFONTS][FNLEN];	/* font names */
@@ -92,8 +92,8 @@ int dev_open(char *dir, char *dev)
 			fscanf(desc, "%d", &dev_hor);
 			continue;
 		}
-		if (!strcmp("ver", tok)) {
-			fscanf(desc, "%d", &dev_ver);
+		if (!strcmp("vert", tok)) {
+			fscanf(desc, "%d", &dev_vert);
 			continue;
 		}
 		if (!strcmp("charset", tok))
