@@ -32,7 +32,7 @@ static int p_h, p_v;		/* current output position */
 static int o_i, p_i;		/* output and pdf fonts (indices into pfont[]) */
 static int p_f, p_s, p_m;	/* output font */
 static int o_queued;		/* queued character type */
-static char o_iset[1024];	/* fonts accesssed in this page */
+static char o_iset[1024];	/* fonts accessed in this page */
 static int xobj[128];		/* page xobject object ids */
 static int xobj_n;		/* number of xobjects in this page */
 static int ann[128];		/* page annotations */
