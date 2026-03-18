@@ -10,7 +10,7 @@ static int o_h, o_v;		/* current user position */
 static int p_wd, p_ht;		/* page width and height in basic units */
 static int c_wdpt = 10, c_htpt = 12;	/* glyph cell width and height in points */
 static int c_wd, c_ht;		/* glyph cell width and height in basic units */
-static int p_cwd, p_cht;	/* page dimentions in cells */
+static int p_cwd, p_cht;	/* page dimensions in cells */
 static char *o_pg;		/* output page buffer */
 
 void outgname(int g)
