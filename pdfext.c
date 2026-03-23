@@ -53,6 +53,26 @@ int pdf_len(char *pdf, int len, int pos)
 		return 0;
 	pos += pdf_ws(pdf, len, pos);
 	c = (unsigned char) pdf[pos];
+	
+	/* PDF keywords: true, false, null as atomic objects */
+	if (c == 't' && pos + 3 < len &&
+	    pdf[pos+1] == 'r' && pdf[pos+2] == 'u' && pdf[pos+3] == 'e' &&
+	    (pos + 4 >= len || strchr(" \t\r\n\f()<>[]{}/%", (unsigned char)pdf[pos+4]))) {
+		pos += 4;
+		return pos - old;
+	}
+	if (c == 'f' && pos + 4 < len &&
+	    pdf[pos+1] == 'a' && pdf[pos+2] == 'l' && pdf[pos+3] == 's' && pdf[pos+4] == 'e' &&
+	    (pos + 5 >= len || strchr(" \t\r\n\f()<>[]{}/%", (unsigned char)pdf[pos+5]))) {
+		pos += 5;
+		return pos - old;
+	}
+	if (c == 'n' && pos + 3 < len &&
+	    pdf[pos+1] == 'u' && pdf[pos+2] == 'l' && pdf[pos+3] == 'l' &&
+	    (pos + 4 >= len || strchr(" \t\r\n\f()<>[]{}/%", (unsigned char)pdf[pos+4]))) {
+		pos += 4;
+		return pos - old;
+	}
 	if (strchr("0123456789+-.", c)) {
 		if (pdf_type(pdf, len, pos) == 'r') {
 			char *r = memchr(pdf + pos, 'R', len - pos);

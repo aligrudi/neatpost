@@ -512,6 +512,60 @@ static char *pdf_copy(char *pdf, int len, int pos)
 }
 
 static void pdf_dictcopy(char *pdf, int len, int pos, struct sbuf *sb);
+static int pdf_objcopy(char *pdf, int len, int pos);
+
+/* 
+ * Copy a PDF array object.
+ *
+ * Elements are copied verbatim except for indirect references,
+ * which must be rewritten to refer to newly copied objects.
+ *
+ * This is required because arrays may contain references to
+ * other objects (e.g. Separation color functions, ExtGState,
+ * etc.). If these references are not recursively copied,
+ * the resulting PDF may reference missing or foreign objects.
+ */
+static void pdf_listcopy(char *pdf, int len, int pos, struct sbuf *sb)
+{
+	int i;
+	sbuf_chr(sb, '[');
+	for (i = 0; ; i++) {
+		int val = pdf_lval(pdf, len, pos, i);
+		if (val < 0)
+			break;
+		
+		switch (pdf_type(pdf, len, val)) {
+			case 'r': {
+				/* indirect reference: copy target object and emit new reference */
+				int id = pdf_objcopy(pdf, len, val);
+				if (id >= 0)
+					sbuf_printf(sb, " %d 0 R", id);
+				break;
+			}
+			case 'l': {
+				/* nested array: copy recursively */
+				struct sbuf *tmp = sbuf_make();
+				pdf_listcopy(pdf, len, val, tmp);
+				sbuf_printf(sb, " %s", sbuf_buf(tmp));
+				sbuf_free(tmp);
+				break;
+			}
+			case 'd': {
+				/* nested dictionary:  copy recursively */
+				struct sbuf *tmp = sbuf_make();
+				pdf_dictcopy(pdf, len, val, tmp);
+				sbuf_printf(sb, " %s", sbuf_buf(tmp));
+				sbuf_free(tmp);
+				break;
+			}
+			default:
+				/* numbers, names, literals, etc. copied unchanged */
+				sbuf_printf(sb, " %s", pdf_copy(pdf, len, val));
+				break;
+		}
+	}
+	sbuf_printf(sb, " ]");
+}
 
 /* write stream to sb */
 static int pdf_strcopy(char *pdf, int len, int pos, struct sbuf *sb)
@@ -545,7 +599,9 @@ static int pdf_objcopy(char *pdf, int len, int pos)
 	int id;
 	if ((pos = pdf_ref(pdf, len, pos)) < 0)
 		return -1;
-	if (pdf_type(pdf, len, pos) == 'd') {
+
+	int type = pdf_type(pdf, len, pos);
+	if (type == 'd') {
 		struct sbuf *sb = sbuf_make();
 		pdf_dictcopy(pdf, len, pos, sb);
 		sbuf_chr(sb, '\n');
@@ -553,6 +609,15 @@ static int pdf_objcopy(char *pdf, int len, int pos)
 			pdf_strcopy(pdf, len, pos, sb);
 		id = obj_beg(0);
 		pdfmem(sbuf_buf(sb), sbuf_len(sb));
+		obj_end();
+		sbuf_free(sb);
+	} else if (type == 'l') {
+		/* list/array: copy and recurse into referenced objects */
+		struct sbuf *sb = sbuf_make();
+		pdf_listcopy(pdf, len, pos, sb);
+		id = obj_beg(0);
+		pdfmem(sbuf_buf(sb), sbuf_len(sb));
+		pdfout("\n");
 		obj_end();
 		sbuf_free(sb);
 	} else {
