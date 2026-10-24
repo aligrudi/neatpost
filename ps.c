@@ -264,8 +264,10 @@ void outeps(char *eps, int hwid, int vwid)
 	int llx, lly, urx, ury;
 	FILE *filp;
 	int nbb, ver;
-	if (!(filp = fopen(eps, "r")))
+	if (!(filp = fopen(eps, "r"))) {
+		fprintf(stderr, "warning: failed to embed file %s\n", eps);
 		return;
+	}
 	if (!fgets(buf, sizeof(buf), filp)) {
 		fprintf(stderr, "warning: file %s is empty\n", eps);
 		fclose(filp);

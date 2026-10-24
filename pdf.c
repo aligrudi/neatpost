@@ -718,6 +718,8 @@ void outpdf(char *pdf, int hwid, int vwid)
 	out_fontup();
 	if (xobj_id >= 0)
 		sbuf_printf(pg, "ET /FO%d Do BT\n", xobj_id);
+	else
+		fprintf(stderr, "neatpost: failed to embed file %s\n", pdf);
 	p_h = -1;
 	p_v = -1;
 }
